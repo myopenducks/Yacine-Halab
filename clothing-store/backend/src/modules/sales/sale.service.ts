@@ -101,7 +101,8 @@ export class SaleService {
   }
 
   async list(query: SaleListQuery): Promise<SaleListResult> {
-    const { page, limit, from, to, hasDebt } = query;
+    const { page, limit, from, to } = query;
+    const hasDebt = query.hasDebt ?? query.debtOnly;
     const { items, total } = await this.repo.list(
       { page, limit },
       { from, to, hasDebt },

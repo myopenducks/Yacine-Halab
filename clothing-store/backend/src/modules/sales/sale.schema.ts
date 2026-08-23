@@ -23,6 +23,7 @@ export const saleListQuerySchema = z.object({
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
   hasDebt: z.coerce.boolean().optional(),
+  debtOnly: z.coerce.boolean().optional(),
 });
 
 export type SaleListQuery = z.infer<typeof saleListQuerySchema>;

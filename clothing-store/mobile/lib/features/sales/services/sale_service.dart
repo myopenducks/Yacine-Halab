@@ -24,6 +24,7 @@ class SaleService {
       query['to'] = to.toUtc().toIso8601String();
     }
     if (debtOnly == true) {
+      query['hasDebt'] = 'true';
       query['debtOnly'] = 'true';
     }
     return _dio.get<PaginatedSales>(

@@ -6,6 +6,9 @@ import 'package:intl/intl.dart';
 import '../../../core/routes/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/money.dart';
+import '../../../core/widgets/app_feedback.dart';
+import '../models/sale.dart';
 import '../providers/sales_history_provider.dart';
 import 'widgets/sale_tile.dart';
 
@@ -60,12 +63,134 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
         );
   }
 
+  Future<void> _quickEdit(SaleHeader sale) async {
+    final nameCtrl = TextEditingController(text: sale.customerName ?? '');
+    final notesCtrl = TextEditingController(text: sale.notes ?? '');
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(
+            'Edit Sale #${sale.id}',
+            style: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.w700),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Customer Name',
+                    hintText: 'e.g. Yacine',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: notesCtrl,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Notes',
+                    hintText: 'e.g. خلصني 1000 وتبقا...',
+                    prefixIcon: Icon(Icons.note_outlined),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == true && mounted) {
+      try {
+        await ref.read(saleServiceProvider).updateSale(
+              sale.id,
+              customerName: nameCtrl.text.trim().isEmpty ? null : nameCtrl.text.trim(),
+              notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
+            );
+        ref.invalidate(saleByIdProvider(sale.id));
+        ref.read(salesListProvider.notifier).refresh();
+        if (mounted) {
+          showAppSnackBar(context, 'Sale #${sale.id} updated', kind: AppSnackKind.success);
+        }
+      } catch (e) {
+        if (mounted) {
+          showAppSnackBar(context, 'Update failed: $e', kind: AppSnackKind.error);
+        }
+      }
+    }
+  }
+
+  Future<void> _quickMarkPaid(SaleHeader sale) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text('Mark Sale #${sale.id} as Finished?'),
+          content: Text(
+            'Remaining due is ${formatDAAmount(sale.remainingAmount)}.\nDo you want to mark this sale as fully paid?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppColors.success),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Mark as Fully Paid'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true && mounted) {
+      try {
+        await ref.read(saleServiceProvider).recordPayment(
+              sale.id,
+              sale.remainingAmount,
+              note: 'خلاص كامل (Marked as finished)',
+            );
+        ref.invalidate(saleByIdProvider(sale.id));
+        ref.read(salesListProvider.notifier).refresh();
+        ref.invalidate(debtBadgeCountProvider);
+        if (mounted) {
+          showAppSnackBar(
+            context,
+            'Sale #${sale.id} marked as fully paid! 🎉',
+            kind: AppSnackKind.success,
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          showAppSnackBar(context, 'Failed: $e', kind: AppSnackKind.error);
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
     final filters = ref.watch(salesFiltersProvider);
     final list = ref.watch(salesListProvider);
+    final debtCount = ref.watch(debtBadgeCountProvider);
+    final unpaidDebts = debtCount.valueOrNull ?? 0;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -76,10 +201,20 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: Center(
-                child: Text(
-                  '${list.total}',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: isLight ? AppColors.gray500 : AppColors.gray400,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isLight ? AppColors.gray100 : AppColors.gray800,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${list.total} sales',
+                    style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      color: isLight ? AppColors.secondary : AppColors.accent,
+                    ),
                   ),
                 ),
               ),
@@ -89,60 +224,53 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
       body: Column(
         children: [
           SizedBox(
-            height: 42,
+            height: 44,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [
                 _FilterChip(
                   label: 'All',
-                  selected: filters.preset == SalesDatePreset.all,
-                  onTap: () => ref
-                      .read(salesFiltersProvider.notifier)
-                      .setPreset(SalesDatePreset.all),
+                  selected: filters.preset == SalesDatePreset.all && !filters.debtOnly,
+                  onTap: () {
+                    if (filters.debtOnly) {
+                      ref.read(salesFiltersProvider.notifier).toggleDebtOnly();
+                    }
+                    ref.read(salesFiltersProvider.notifier).setPreset(SalesDatePreset.all);
+                  },
+                ),
+                const SizedBox(width: 8),
+                _FilterChip(
+                  label: unpaidDebts > 0 ? '🔴 Debts ($unpaidDebts)' : 'Debts',
+                  selected: filters.debtOnly,
+                  icon: Icons.warning_amber_rounded,
+                  onTap: () => ref.read(salesFiltersProvider.notifier).toggleDebtOnly(),
+                  accentColor: AppColors.debtRed,
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
                   label: 'Today',
-                  selected: filters.preset == SalesDatePreset.today,
-                  onTap: () => ref
-                      .read(salesFiltersProvider.notifier)
-                      .setPreset(SalesDatePreset.today),
+                  selected: filters.preset == SalesDatePreset.today && !filters.debtOnly,
+                  onTap: () => ref.read(salesFiltersProvider.notifier).setPreset(SalesDatePreset.today),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
                   label: 'Week',
-                  selected: filters.preset == SalesDatePreset.week,
-                  onTap: () => ref
-                      .read(salesFiltersProvider.notifier)
-                      .setPreset(SalesDatePreset.week),
+                  selected: filters.preset == SalesDatePreset.week && !filters.debtOnly,
+                  onTap: () => ref.read(salesFiltersProvider.notifier).setPreset(SalesDatePreset.week),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
                   label: 'Month',
-                  selected: filters.preset == SalesDatePreset.month,
-                  onTap: () => ref
-                      .read(salesFiltersProvider.notifier)
-                      .setPreset(SalesDatePreset.month),
+                  selected: filters.preset == SalesDatePreset.month && !filters.debtOnly,
+                  onTap: () => ref.read(salesFiltersProvider.notifier).setPreset(SalesDatePreset.month),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: filters.preset == SalesDatePreset.custom
-                      ? _customLabel(filters)
-                      : 'Range',
+                  label: filters.preset == SalesDatePreset.custom ? _customLabel(filters) : 'Range',
                   selected: filters.preset == SalesDatePreset.custom,
                   icon: Icons.date_range_outlined,
                   onTap: _pickCustomRange,
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Debts',
-                  selected: filters.debtOnly,
-                  icon: Icons.money_off_csred_outlined,
-                  onTap: () => ref
-                      .read(salesFiltersProvider.notifier)
-                      .toggleDebtOnly(),
-                  accentColor: AppColors.debtRed,
                 ),
               ],
             ),
@@ -205,8 +333,8 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
         children: [
           _EmptyState(
             icon: Icons.receipt_long_outlined,
-            title: 'No sales yet',
-            subtitle: 'Completed sales will show up here.',
+            title: 'No sales found',
+            subtitle: 'No sales match the selected filter.',
             isLight: isLight,
           ),
         ],
@@ -236,6 +364,8 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
         return SaleTile(
           sale: sale,
           onTap: () => context.push(AppRouteNames.saleDetailPath(sale.id)),
+          onEdit: () => _quickEdit(sale),
+          onMarkPaid: sale.hasDebt ? () => _quickMarkPaid(sale) : null,
         );
       },
     );
@@ -275,7 +405,7 @@ class _FilterChip extends StatelessWidget {
           : AppColors.chipUnselectedFg(brightness);
     }
     final border = accentColor != null && selected
-        ? accentColor!.withValues(alpha: 0.3)
+        ? accentColor!.withValues(alpha: 0.4)
         : AppColors.chipBorder(brightness);
 
     return Material(
@@ -290,10 +420,8 @@ class _FilterChip extends StatelessWidget {
             color: bg,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: selected && accentColor == null
-                  ? Colors.transparent
-                  : border,
-              width: 1.2,
+              color: selected && accentColor == null ? Colors.transparent : border,
+              width: selected ? 1.5 : 1.2,
             ),
           ),
           child: Row(
@@ -308,7 +436,7 @@ class _FilterChip extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   color: fg,
                 ),
               ),
