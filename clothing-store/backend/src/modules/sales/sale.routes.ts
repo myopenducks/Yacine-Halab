@@ -28,4 +28,12 @@ export function registerSaleRoutes(
       return reply.status(201).send(result);
     },
   );
+
+  app.post(
+    '/api/v1/sales/:id/payments',
+    async (req, reply) => {
+      const result = await handler.recordPayment(req);
+      return reply.status(200).send(result);
+    },
+  );
 }

@@ -8,6 +8,13 @@
       "when": 1787432530779,
       "tag": "0000_icy_the_santerians",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1787514000000,
+      "tag": "0001_add_sale_notes_and_customer",
+      "breakpoints": true
     }
   ]
 }

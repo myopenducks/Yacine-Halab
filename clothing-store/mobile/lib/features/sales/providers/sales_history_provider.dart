@@ -24,11 +24,13 @@ class SalesFilters {
     this.preset = SalesDatePreset.all,
     this.customFrom,
     this.customTo,
+    this.debtOnly = false,
   });
 
   final SalesDatePreset preset;
   final DateTime? customFrom;
   final DateTime? customTo;
+  final bool debtOnly;
 
   ({DateTime? from, DateTime? to}) get range {
     final now = DateTime.now();
@@ -72,11 +74,13 @@ class SalesFilters {
     DateTime? customFrom,
     DateTime? customTo,
     bool clearCustom = false,
+    bool? debtOnly,
   }) {
     return SalesFilters(
       preset: preset ?? this.preset,
       customFrom: clearCustom ? null : (customFrom ?? this.customFrom),
       customTo: clearCustom ? null : (customTo ?? this.customTo),
+      debtOnly: debtOnly ?? this.debtOnly,
     );
   }
 
@@ -84,12 +88,13 @@ class SalesFilters {
   bool operator ==(Object other) {
     return other is SalesFilters &&
         other.preset == preset &&
+        other.debtOnly == debtOnly &&
         _sameDay(other.customFrom, customFrom) &&
         _sameDay(other.customTo, customTo);
   }
 
   @override
-  int get hashCode => Object.hash(preset, customFrom, customTo);
+  int get hashCode => Object.hash(preset, customFrom, customTo, debtOnly);
 
   static bool _sameDay(DateTime? a, DateTime? b) {
     if (a == null && b == null) return true;
@@ -133,6 +138,10 @@ class SalesFiltersNotifier extends Notifier<SalesFilters> {
       customFrom: from,
       customTo: to,
     );
+  }
+
+  void toggleDebtOnly() {
+    state = state.copyWith(debtOnly: !state.debtOnly);
   }
 
   void clear() {
@@ -257,6 +266,7 @@ class SalesListNotifier extends Notifier<SalesListState> {
       limit: _pageSize,
       from: range.from,
       to: range.to,
+      debtOnly: _filters.debtOnly ? true : null,
     );
   }
 
@@ -279,3 +289,12 @@ final saleByIdProvider =
 void refreshSalesHistory(WidgetRef ref) {
   ref.read(salesListProvider.notifier).refresh();
 }
+
+/// Provider that fetches just one page to count how many debt sales exist.
+/// Used to show a red badge on the History tab.
+final debtBadgeCountProvider = FutureProvider.autoDispose<int>((ref) async {
+  final service = ref.watch(saleServiceProvider);
+  final page = await service.list(page: 1, limit: 1, debtOnly: true);
+  return page.total;
+});
+

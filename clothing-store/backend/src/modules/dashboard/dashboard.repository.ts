@@ -28,6 +28,8 @@ export interface DashboardSummary {
   revenue: number;
   profit: number;
   lowStockCount: number;
+  unpaidDebtCount: number;
+  totalUnpaidDebtDA: number;
   categoryQuantities: Array<{
     categoryId: number;
     name: string;
@@ -127,6 +129,10 @@ export class DashboardRepository {
       .from(products)
       .where(lte(products.quantity, LOW_STOCK_THRESHOLD));
     return Number(rows[0]?.value ?? 0);
+  }
+
+  async getDebts(): Promise<{ unpaidDebtCount: number; totalUnpaidDebtDA: number }> {
+    return this.saleRepo.aggregateDebts();
   }
 
   async getCategoryQuantities(): Promise<

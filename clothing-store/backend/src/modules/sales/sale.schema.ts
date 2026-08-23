@@ -10,6 +10,9 @@ export const createSaleSchema = z.object({
       }),
     )
     .min(1, 'Sale must have at least 1 item'),
+  paidAmount: z.coerce.number().int().min(0).optional(),
+  customerName: z.string().trim().max(120).optional(),
+  notes: z.string().trim().max(500).optional(),
 });
 
 export type CreateSaleDto = z.infer<typeof createSaleSchema>;
@@ -19,6 +22,7 @@ export const saleListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
+  hasDebt: z.coerce.boolean().optional(),
 });
 
 export type SaleListQuery = z.infer<typeof saleListQuerySchema>;
@@ -28,6 +32,13 @@ export const saleIdParamSchema = z.object({
 });
 
 export type SaleIdParam = z.infer<typeof saleIdParamSchema>;
+
+export const recordPaymentSchema = z.object({
+  amount: z.coerce.number().int().positive('Payment amount must be positive'),
+  note: z.string().trim().max(200).optional(),
+});
+
+export type RecordPaymentDto = z.infer<typeof recordPaymentSchema>;
 
 export interface SaleItemDetail {
   id: number;
@@ -44,6 +55,8 @@ export interface SaleHeader {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
+  customerName: string | null;
+  notes: string | null;
   itemCount: number;
   createdAt: Date;
 }
@@ -53,3 +66,4 @@ export interface SaleDetail extends Omit<SaleHeader, 'itemCount'> {
 }
 
 export type SaleListResult = PaginatedResult<SaleHeader>;
+

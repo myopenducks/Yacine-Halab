@@ -11,6 +11,7 @@ class SaleService {
     required int limit,
     DateTime? from,
     DateTime? to,
+    bool? debtOnly,
   }) async {
     final Map<String, dynamic> query = {
       'page': '$page',
@@ -22,6 +23,9 @@ class SaleService {
     if (to != null) {
       query['to'] = to.toUtc().toIso8601String();
     }
+    if (debtOnly == true) {
+      query['debtOnly'] = 'true';
+    }
     return _dio.get<PaginatedSales>(
       '/api/v1/sales',
       queryParameters: query,
@@ -31,6 +35,9 @@ class SaleService {
 
   Future<SaleDetail> create({
     required List<({int productId, int quantity})> items,
+    String? customerName,
+    String? notes,
+    int? paidAmount,
   }) {
     return _dio.post<SaleDetail>(
       '/api/v1/sales',
@@ -38,6 +45,10 @@ class SaleService {
         'items': items
             .map((i) => {'productId': i.productId, 'quantity': i.quantity})
             .toList(growable: false),
+        if (customerName != null && customerName.trim().isNotEmpty)
+          'customerName': customerName.trim(),
+        if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
+        if (paidAmount != null) 'paidAmount': paidAmount,
       },
       dataFromJson: SaleDetail.fromJson,
     );
@@ -46,6 +57,15 @@ class SaleService {
   Future<SaleDetail> getById(int id) {
     return _dio.get<SaleDetail>(
       '/api/v1/sales/$id',
+      dataFromJson: SaleDetail.fromJson,
+    );
+  }
+
+  /// Record a partial or full payment for a debt sale.
+  Future<SaleDetail> recordPayment(int saleId, int amount) {
+    return _dio.post<SaleDetail>(
+      '/api/v1/sales/$saleId/payment',
+      body: {'amount': amount},
       dataFromJson: SaleDetail.fromJson,
     );
   }

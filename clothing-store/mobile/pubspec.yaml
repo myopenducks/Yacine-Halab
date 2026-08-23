@@ -32,6 +32,9 @@ dependencies:
   # Shared preferences (lightweight non-secret settings)
   shared_preferences: ^2.3.2
 
+  # Image picker (profile picture)
+  image_picker: ^1.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

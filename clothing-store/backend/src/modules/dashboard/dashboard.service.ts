@@ -21,11 +21,13 @@ export class DashboardService {
       to: query.to,
     });
 
-    const [periodAgg, lowStockCount, categoryQuantities] = await Promise.all([
-      this.repo.getSummary(range),
-      this.repo.getLowStockCount(),
-      this.repo.getCategoryQuantities(),
-    ]);
+    const [periodAgg, lowStockCount, debts, categoryQuantities] =
+      await Promise.all([
+        this.repo.getSummary(range),
+        this.repo.getLowStockCount(),
+        this.repo.getDebts(),
+        this.repo.getCategoryQuantities(),
+      ]);
 
     return {
       period: query.period,
@@ -36,6 +38,8 @@ export class DashboardService {
       revenue: periodAgg.revenue,
       profit: periodAgg.profit,
       lowStockCount,
+      unpaidDebtCount: debts.unpaidDebtCount,
+      totalUnpaidDebtDA: debts.totalUnpaidDebtDA,
       categoryQuantities,
     };
   }

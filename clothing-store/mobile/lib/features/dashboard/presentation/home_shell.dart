@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../sales/providers/sales_history_provider.dart';
 
-class HomeShell extends StatelessWidget {
+class HomeShell extends ConsumerWidget {
   const HomeShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
@@ -26,13 +28,13 @@ class HomeShell extends StatelessWidget {
       icon: Icons.point_of_sale_outlined,
       activeIcon: Icons.point_of_sale,
       location: '/cart',
-      badge: true,
     ),
     TabConfig(
       label: 'History',
       icon: Icons.receipt_long_outlined,
       activeIcon: Icons.receipt_long,
       location: '/history',
+      hasDebtBadge: true,
     ),
     TabConfig(
       label: 'Profile',
@@ -50,9 +52,12 @@ class HomeShell extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
+    final debtCount = ref.watch(debtBadgeCountProvider);
+    final hasDebt = debtCount.valueOrNull != null && debtCount.valueOrNull! > 0;
+
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: Container(
@@ -74,13 +79,26 @@ class HomeShell extends StatelessWidget {
         child: NavigationBar(
           selectedIndex: navigationShell.currentIndex,
           onDestinationSelected: _goToBranch,
-          destinations: tabs
-              .map((t) => NavigationDestination(
-                    icon: Icon(t.icon),
-                    selectedIcon: Icon(t.activeIcon),
-                    label: t.label,
-                  ))
-              .toList(growable: false),
+          destinations: tabs.asMap().entries.map((entry) {
+            final t = entry.value;
+            final icon = t.hasDebtBadge && hasDebt
+                ? Badge(
+                    backgroundColor: AppColors.debtRed,
+                    child: Icon(t.icon),
+                  )
+                : Icon(t.icon);
+            final selectedIcon = t.hasDebtBadge && hasDebt
+                ? Badge(
+                    backgroundColor: AppColors.debtRed,
+                    child: Icon(t.activeIcon),
+                  )
+                : Icon(t.activeIcon);
+            return NavigationDestination(
+              icon: icon,
+              selectedIcon: selectedIcon,
+              label: t.label,
+            );
+          }).toList(growable: false),
         ),
       ),
     );
@@ -93,12 +111,12 @@ class TabConfig {
     required this.icon,
     required this.activeIcon,
     required this.location,
-    this.badge = false,
+    this.hasDebtBadge = false,
   });
 
   final String label;
   final IconData icon;
   final IconData activeIcon;
   final String location;
-  final bool badge;
+  final bool hasDebtBadge;
 }

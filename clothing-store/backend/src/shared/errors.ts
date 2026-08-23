@@ -8,6 +8,7 @@ export type ErrorCode =
   | 'PRODUCT_HAS_SALES'
   | 'INSUFFICIENT_STOCK'
   | 'SALE_NOT_FOUND'
+  | 'SALE_ALREADY_PAID'
   | 'INTERNAL_ERROR';
 
 export class AppError extends Error {

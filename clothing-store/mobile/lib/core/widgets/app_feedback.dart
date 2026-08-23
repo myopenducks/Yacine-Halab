@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
-enum AppSnackKind { info, success, error }
+enum AppSnackKind { info, success, error, warning }
 
 void showAppSnackBar(
   BuildContext context,
@@ -21,6 +21,9 @@ void showAppSnackBar(
       fg = AppColors.onPrimary;
     case AppSnackKind.error:
       bg = AppColors.danger;
+      fg = AppColors.onPrimary;
+    case AppSnackKind.warning:
+      bg = AppColors.warning;
       fg = AppColors.onPrimary;
     case AppSnackKind.info:
       bg = isLight ? AppColors.secondary : AppColors.accent;

@@ -33,27 +33,48 @@ class NewSaleState {
     this.lines = const [],
     this.submitting = false,
     this.error,
+    this.customerName,
+    this.notes,
+    this.paidAmount,
   });
 
   final List<CartLine> lines;
   final bool submitting;
   final String? error;
+  final String? customerName;
+  final String? notes;
+  final int? paidAmount;
 
   bool get isEmpty => lines.isEmpty;
   int get distinctCount => lines.length;
   int get unitCount => lines.fold(0, (s, l) => s + l.quantity);
   int get totalAmount => lines.fold(0, (s, l) => s + l.lineTotal);
+  bool get hasDebt {
+    final paid = paidAmount;
+    if (paid == null) return false;
+    return paid < totalAmount;
+  }
 
   NewSaleState copyWith({
     List<CartLine>? lines,
     bool? submitting,
     String? error,
     bool clearError = false,
+    String? customerName,
+    bool clearCustomerName = false,
+    String? notes,
+    bool clearNotes = false,
+    int? paidAmount,
+    bool clearPaidAmount = false,
   }) {
     return NewSaleState(
       lines: lines ?? this.lines,
       submitting: submitting ?? this.submitting,
       error: clearError ? null : (error ?? this.error),
+      customerName:
+          clearCustomerName ? null : (customerName ?? this.customerName),
+      notes: clearNotes ? null : (notes ?? this.notes),
+      paidAmount: clearPaidAmount ? null : (paidAmount ?? this.paidAmount),
     );
   }
 }
@@ -65,14 +86,14 @@ class NewSaleNotifier extends Notifier<NewSaleState> {
   /// Returns null on success path message; returns error string if blocked.
   String? addProduct(Product product) {
     if (product.quantity <= 0) {
-      return '“${product.name}” is out of stock';
+      return '"${product.name}" is out of stock';
     }
 
     final idx = state.lines.indexWhere((l) => l.product.id == product.id);
     if (idx >= 0) {
       final current = state.lines[idx];
       if (current.quantity >= product.quantity) {
-        return 'Only ${product.quantity} in stock for “${product.name}”';
+        return 'Only ${product.quantity} in stock for "${product.name}"';
       }
       final next = [...state.lines];
       next[idx] = current.copyWith(
@@ -113,7 +134,7 @@ class NewSaleNotifier extends Notifier<NewSaleState> {
     final line = state.lines[idx];
     if (line.quantity >= line.maxQty) {
       state = state.copyWith(
-        error: 'Only ${line.maxQty} in stock for “${line.product.name}”',
+        error: 'Only ${line.maxQty} in stock for "${line.product.name}"',
       );
       return;
     }
@@ -143,6 +164,30 @@ class NewSaleNotifier extends Notifier<NewSaleState> {
     }
   }
 
+  void setCustomerName(String? name) {
+    if (name == null || name.trim().isEmpty) {
+      state = state.copyWith(clearCustomerName: true);
+    } else {
+      state = state.copyWith(customerName: name.trim());
+    }
+  }
+
+  void setNotes(String? notes) {
+    if (notes == null || notes.trim().isEmpty) {
+      state = state.copyWith(clearNotes: true);
+    } else {
+      state = state.copyWith(notes: notes.trim());
+    }
+  }
+
+  void setPaidAmount(int? amount) {
+    if (amount == null || amount <= 0) {
+      state = state.copyWith(clearPaidAmount: true);
+    } else {
+      state = state.copyWith(paidAmount: amount);
+    }
+  }
+
   Future<SaleDetail?> submit() async {
     if (state.lines.isEmpty) {
       state = state.copyWith(error: 'Add at least one product');
@@ -154,6 +199,9 @@ class NewSaleNotifier extends Notifier<NewSaleState> {
             items: state.lines
                 .map((l) => (productId: l.product.id, quantity: l.quantity))
                 .toList(growable: false),
+            customerName: state.customerName,
+            notes: state.notes,
+            paidAmount: state.paidAmount,
           );
       state = const NewSaleState();
       ref.read(productsListProvider.notifier).refresh();

@@ -4,24 +4,31 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const _kThemeMode = 'settings.theme_mode';
 const _kDisplayName = 'settings.display_name';
+const _kAvatarPath = 'settings.avatar_path';
 
 class AppSettings {
   const AppSettings({
     this.themeMode = ThemeMode.system,
     this.displayName,
+    this.avatarPath,
   });
 
   final ThemeMode themeMode;
   final String? displayName;
+  /// Absolute file path to the user's chosen avatar image.
+  final String? avatarPath;
 
   AppSettings copyWith({
     ThemeMode? themeMode,
     String? displayName,
     bool clearDisplayName = false,
+    String? avatarPath,
+    bool clearAvatarPath = false,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
       displayName: clearDisplayName ? null : (displayName ?? this.displayName),
+      avatarPath: clearAvatarPath ? null : (avatarPath ?? this.avatarPath),
     );
   }
 }
@@ -34,9 +41,11 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
     _prefs = await SharedPreferences.getInstance();
     final modeRaw = _prefs!.getString(_kThemeMode);
     final displayName = _prefs!.getString(_kDisplayName);
+    final avatarPath = _prefs!.getString(_kAvatarPath);
     return AppSettings(
       themeMode: _parseThemeMode(modeRaw),
       displayName: displayName?.trim().isEmpty == true ? null : displayName,
+      avatarPath: avatarPath?.trim().isEmpty == true ? null : avatarPath,
     );
   }
 
@@ -56,6 +65,19 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
     }
     state = AsyncData(current.copyWith(displayName: trimmed));
     await _prefs?.setString(_kDisplayName, trimmed);
+  }
+
+  /// Saves the given [filePath] as the avatar. Replaces any previous one.
+  Future<void> setAvatarPath(String? filePath) async {
+    final trimmed = filePath?.trim();
+    final current = state.value ?? const AppSettings();
+    if (trimmed == null || trimmed.isEmpty) {
+      state = AsyncData(current.copyWith(clearAvatarPath: true));
+      await _prefs?.remove(_kAvatarPath);
+      return;
+    }
+    state = AsyncData(current.copyWith(avatarPath: trimmed));
+    await _prefs?.setString(_kAvatarPath, trimmed);
   }
 
   ThemeMode _parseThemeMode(String? raw) {
@@ -78,4 +100,9 @@ final themeModeProvider = Provider<ThemeMode>((ref) {
 /// Shop-owner display name shown in profile / dashboard greeting.
 final displayNameProvider = Provider<String?>((ref) {
   return ref.watch(settingsProvider).value?.displayName;
+});
+
+/// Current avatar file path (null = use initials).
+final avatarPathProvider = Provider<String?>((ref) {
+  return ref.watch(settingsProvider).value?.avatarPath;
 });

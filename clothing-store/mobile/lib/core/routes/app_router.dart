@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/auth_provider.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/dashboard/presentation/home_shell.dart';
 import '../../features/dashboard/presentation/tabs/dashboard_tab.dart';
 import '../../features/dashboard/presentation/tabs/products_tab.dart';
@@ -15,6 +16,9 @@ import '../../features/sales/presentation/sale_detail_screen.dart';
 
 class AppRouteNames {
   AppRouteNames._();
+  static const String splash = 'splash';
+  static const String splashPath = '/splash';
+
   static const String login = 'login';
   static const String loginPath = '/login';
 
@@ -55,21 +59,36 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 
   return GoRouter(
-    initialLocation: AppRouteNames.homePath,
+    initialLocation: AppRouteNames.splashPath,
     debugLogDiagnostics: false,
     refreshListenable: notifier,
     redirect: (context, state) {
       final auth = ref.read(authNotifierProvider);
-      if (auth.status == AuthStatus.unknown) return null;
-
-      final loggedIn = auth.isLoggedIn;
+      final onSplash = state.matchedLocation == AppRouteNames.splashPath;
       final onLogin = state.matchedLocation == AppRouteNames.loginPath;
 
-      if (!loggedIn && !onLogin) return AppRouteNames.loginPath;
-      if (loggedIn && onLogin) return AppRouteNames.homePath;
+      if (auth.status == AuthStatus.unknown) {
+        return onSplash ? null : AppRouteNames.splashPath;
+      }
+
+      final loggedIn = auth.isLoggedIn;
+
+      if (!loggedIn) {
+        return onLogin ? null : AppRouteNames.loginPath;
+      }
+
+      if (loggedIn && (onLogin || onSplash)) {
+        return AppRouteNames.homePath;
+      }
+
       return null;
     },
     routes: [
+      GoRoute(
+        name: AppRouteNames.splash,
+        path: AppRouteNames.splashPath,
+        builder: (context, state) => const SplashScreen(),
+      ),
       GoRoute(
         name: AppRouteNames.login,
         path: AppRouteNames.loginPath,

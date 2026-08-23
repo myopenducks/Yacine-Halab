@@ -78,8 +78,19 @@ export class SaleService {
         });
       }
 
-      const paidAmount = totalAmount;
-      const saleId = await this.repo.insertSale(tx, { totalAmount, paidAmount });
+      const paidAmount =
+        dto.paidAmount !== undefined
+          ? Math.min(Math.max(0, dto.paidAmount), totalAmount)
+          : totalAmount;
+      const customerName = dto.customerName ?? null;
+      const notes = dto.notes ?? null;
+
+      const saleId = await this.repo.insertSale(tx, {
+        totalAmount,
+        paidAmount,
+        customerName,
+        notes,
+      });
       for (const it of saleItemInserts) it.saleId = saleId;
       await this.repo.bulkInsertSaleItems(tx, saleItemInserts);
       await this.repo.bulkUpdateProductQuantities(tx, quantityUpdates);
@@ -90,8 +101,11 @@ export class SaleService {
   }
 
   async list(query: SaleListQuery): Promise<SaleListResult> {
-    const { page, limit, from, to } = query;
-    const { items, total } = await this.repo.list({ page, limit }, { from, to });
+    const { page, limit, from, to, hasDebt } = query;
+    const { items, total } = await this.repo.list(
+      { page, limit },
+      { from, to, hasDebt },
+    );
     return { items, total, page, limit };
   }
 
@@ -105,5 +119,33 @@ export class SaleService {
       });
     }
     return row;
+  }
+
+  async recordPayment(
+    id: number,
+    dto: { amount: number; note?: string },
+  ): Promise<SaleDetail> {
+    const sale = await this.getById(id);
+    const remaining = sale.remainingAmount;
+    if (remaining <= 0) {
+      throw new AppError({
+        code: 'SALE_ALREADY_PAID',
+        statusCode: 400,
+        message: 'This sale is already fully paid.',
+      });
+    }
+
+    const payAmount = Math.min(dto.amount, remaining);
+    const newPaidAmount = sale.paidAmount + payAmount;
+
+    let updatedNotes = sale.notes;
+    if (dto.note) {
+      updatedNotes = updatedNotes
+        ? `${updatedNotes} | Payment: +${payAmount} DA (${dto.note})`
+        : `Payment: +${payAmount} DA (${dto.note})`;
+    }
+
+    await this.repo.updatePaidAmount(id, newPaidAmount, updatedNotes);
+    return this.getById(id);
   }
 }

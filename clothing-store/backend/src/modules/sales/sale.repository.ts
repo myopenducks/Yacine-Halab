@@ -41,16 +41,27 @@ export class SaleRepository {
 
   async list(
     pagination: PaginationParams,
-    filters: Pick<SaleListQuery, 'from' | 'to'>,
+    filters: Pick<SaleListQuery, 'from' | 'to' | 'hasDebt'>,
   ): Promise<{ items: SaleHeader[]; total: number }> {
     const dateWhere = this.buildDateRangeWhere(filters.from, filters.to);
     const offset = computeOffset(pagination);
+
+    const conditions = [];
+    if (dateWhere) conditions.push(dateWhere);
+    if (filters.hasDebt === true) {
+      conditions.push(sql`${sales.totalAmount} > ${sales.paidAmount}`);
+    } else if (filters.hasDebt === false) {
+      conditions.push(sql`${sales.totalAmount} <= ${sales.paidAmount}`);
+    }
+    const combinedWhere = conditions.length > 0 ? and(...conditions) : undefined;
 
     const itemsBase = this.db
       .select({
         id: sales.id,
         totalAmount: sales.totalAmount,
         paidAmount: sales.paidAmount,
+        customerName: sales.customerName,
+        notes: sales.notes,
         createdAt: sales.createdAt,
       })
       .from(sales);
@@ -64,9 +75,9 @@ export class SaleRepository {
       .select({ value: count(sales.id) })
       .from(sales);
 
-    if (dateWhere) {
-      itemsQuery.where(dateWhere);
-      countQuery.where(dateWhere);
+    if (combinedWhere) {
+      itemsQuery.where(combinedWhere);
+      countQuery.where(combinedWhere);
     }
 
     const [rows, countRows] = await Promise.all([itemsQuery, countQuery]);
@@ -93,7 +104,9 @@ export class SaleRepository {
         id: r.id,
         totalAmount: r.totalAmount,
         paidAmount: r.paidAmount,
-        remainingAmount: r.totalAmount - r.paidAmount,
+        remainingAmount: Math.max(0, r.totalAmount - r.paidAmount),
+        customerName: r.customerName ?? null,
+        notes: r.notes ?? null,
         itemCount,
         createdAt: r.createdAt,
       };
@@ -117,6 +130,8 @@ export class SaleRepository {
         id: sales.id,
         totalAmount: sales.totalAmount,
         paidAmount: sales.paidAmount,
+        customerName: sales.customerName,
+        notes: sales.notes,
         createdAt: sales.createdAt,
       })
       .from(sales)
@@ -153,7 +168,9 @@ export class SaleRepository {
       id: h.id,
       totalAmount: h.totalAmount,
       paidAmount: h.paidAmount,
-      remainingAmount: h.totalAmount - h.paidAmount,
+      remainingAmount: Math.max(0, h.totalAmount - h.paidAmount),
+      customerName: h.customerName ?? null,
+      notes: h.notes ?? null,
       createdAt: h.createdAt,
       items,
     };
@@ -192,10 +209,42 @@ export class SaleRepository {
 
   async insertSale(
     tx: MySql2Database<typeof schema>,
-    data: { totalAmount: number; paidAmount: number },
+    data: {
+      totalAmount: number;
+      paidAmount: number;
+      customerName?: string | null;
+      notes?: string | null;
+    },
   ): Promise<number> {
     const result = await tx.insert(sales).values(data);
     return Number(result[0].insertId);
+  }
+
+  async updatePaidAmount(
+    id: number,
+    paidAmount: number,
+    notes?: string | null,
+  ): Promise<void> {
+    const patch: Partial<typeof sales.$inferInsert> = { paidAmount };
+    if (notes !== undefined) patch.notes = notes;
+    await this.db.update(sales).set(patch).where(eq(sales.id, id));
+  }
+
+  async aggregateDebts(): Promise<{ unpaidDebtCount: number; totalUnpaidDebtDA: number }> {
+    const debtWhere = sql`${sales.totalAmount} > ${sales.paidAmount}`;
+    const q = this.db
+      .select({
+        debtCount: count(sales.id),
+        totalDebt: sum(sql<number>`${sales.totalAmount} - ${sales.paidAmount}`),
+      })
+      .from(sales)
+      .where(debtWhere);
+    const rows = await q;
+    const r = rows[0];
+    return {
+      unpaidDebtCount: Number(r?.debtCount ?? 0),
+      totalUnpaidDebtDA: Number(r?.totalDebt ?? 0),
+    };
   }
 
   async bulkInsertSaleItems(

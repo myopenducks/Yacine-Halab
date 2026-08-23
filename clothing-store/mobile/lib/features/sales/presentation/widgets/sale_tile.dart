@@ -21,6 +21,7 @@ class SaleTile extends StatelessWidget {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
     final dateFmt = appDateTimeFormat;
+    final hasDebt = sale.hasDebt;
 
     return Material(
       color: Colors.transparent,
@@ -33,8 +34,10 @@ class SaleTile extends StatelessWidget {
             color: isLight ? AppColors.white : AppColors.gray900,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: isLight ? AppColors.gray200 : AppColors.gray800,
-              width: 1.2,
+              color: hasDebt
+                  ? AppColors.debtRed.withValues(alpha: 0.3)
+                  : (isLight ? AppColors.gray200 : AppColors.gray800),
+              width: hasDebt ? 1.5 : 1.2,
             ),
           ),
           child: Row(
@@ -43,12 +46,18 @@ class SaleTile extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: isLight ? AppColors.gray100 : AppColors.gray800,
+                  color: hasDebt
+                      ? AppColors.debtRed.withValues(alpha: 0.1)
+                      : (isLight ? AppColors.gray100 : AppColors.gray800),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
-                  Icons.receipt_long_outlined,
-                  color: isLight ? AppColors.black : AppColors.white,
+                  hasDebt
+                      ? Icons.money_off_csred_outlined
+                      : Icons.receipt_long_outlined,
+                  color: hasDebt
+                      ? AppColors.debtRed
+                      : (isLight ? AppColors.black : AppColors.white),
                 ),
               ),
               const SizedBox(width: 14),
@@ -56,9 +65,29 @@ class SaleTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Sale #${sale.id}',
-                      style: theme.textTheme.titleLarge,
+                    Row(
+                      children: [
+                        Text(
+                          'Sale #${sale.id}',
+                          style: theme.textTheme.titleLarge,
+                        ),
+                        if (sale.customerName != null) ...[
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              '· ${sale.customerName}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: isLight
+                                    ? AppColors.skyBlue
+                                    : AppColors.softBlue,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -80,7 +109,7 @@ class SaleTile extends StatelessWidget {
                               ? 'Paid'
                               : 'Due ${formatDASimple(sale.remainingAmount)}',
                           isLight: isLight,
-                          warn: sale.remainingAmount > 0,
+                          warn: hasDebt,
                         ),
                       ],
                     ),
@@ -126,7 +155,7 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = warn ? AppColors.warning : AppColors.success;
+    final color = warn ? AppColors.debtRed : AppColors.success;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(

@@ -4,6 +4,7 @@ import {
   mysqlTable,
   serial,
   timestamp,
+  varchar,
   index,
 } from 'drizzle-orm/mysql-core';
 import { saleItems } from './sale-items';
@@ -14,6 +15,8 @@ export const sales = mysqlTable(
     id: serial('id').primaryKey(),
     totalAmount: int('total_amount').notNull(),
     paidAmount: int('paid_amount').notNull(),
+    customerName: varchar('customer_name', { length: 120 }),
+    notes: varchar('notes', { length: 500 }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
       .notNull()

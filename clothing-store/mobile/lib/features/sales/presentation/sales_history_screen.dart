@@ -134,6 +134,16 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
                   icon: Icons.date_range_outlined,
                   onTap: _pickCustomRange,
                 ),
+                const SizedBox(width: 8),
+                _FilterChip(
+                  label: 'Debts',
+                  selected: filters.debtOnly,
+                  icon: Icons.money_off_csred_outlined,
+                  onTap: () => ref
+                      .read(salesFiltersProvider.notifier)
+                      .toggleDebtOnly(),
+                  accentColor: AppColors.debtRed,
+                ),
               ],
             ),
           ),
@@ -238,23 +248,35 @@ class _FilterChip extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.icon,
+    this.accentColor,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
   final IconData? icon;
+  final Color? accentColor;
 
   @override
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
-    final bg = selected
-        ? AppColors.chipSelectedBg(brightness)
-        : AppColors.chipUnselectedBg(brightness);
-    final fg = selected
-        ? AppColors.chipSelectedFg(brightness)
-        : AppColors.chipUnselectedFg(brightness);
-    final border = AppColors.chipBorder(brightness);
+    final Color bg;
+    final Color fg;
+
+    if (accentColor != null && selected) {
+      bg = accentColor!.withValues(alpha: 0.15);
+      fg = accentColor!;
+    } else {
+      bg = selected
+          ? AppColors.chipSelectedBg(brightness)
+          : AppColors.chipUnselectedBg(brightness);
+      fg = selected
+          ? AppColors.chipSelectedFg(brightness)
+          : AppColors.chipUnselectedFg(brightness);
+    }
+    final border = accentColor != null && selected
+        ? accentColor!.withValues(alpha: 0.3)
+        : AppColors.chipBorder(brightness);
 
     return Material(
       color: Colors.transparent,
@@ -268,7 +290,9 @@ class _FilterChip extends StatelessWidget {
             color: bg,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: selected ? Colors.transparent : border,
+              color: selected && accentColor == null
+                  ? Colors.transparent
+                  : border,
               width: 1.2,
             ),
           ),

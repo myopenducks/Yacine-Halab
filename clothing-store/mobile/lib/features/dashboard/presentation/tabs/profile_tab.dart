@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/providers/settings_provider.dart';
 import '../../../../core/routes/app_router.dart';
@@ -53,6 +56,21 @@ class ProfileTab extends ConsumerWidget {
     await ref.read(settingsProvider.notifier).setDisplayName(saved);
     if (context.mounted) {
       showAppSnackBar(context, 'Name updated', kind: AppSnackKind.success);
+    }
+  }
+
+  Future<void> _changeAvatar(BuildContext context, WidgetRef ref) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 85,
+    );
+    if (picked == null) return;
+    await ref.read(settingsProvider.notifier).setAvatarPath(picked.path);
+    if (context.mounted) {
+      showAppSnackBar(context, 'Photo updated', kind: AppSnackKind.success);
     }
   }
 
@@ -161,6 +179,7 @@ class ProfileTab extends ConsumerWidget {
     final auth = ref.watch(authNotifierProvider);
     final user = auth.user;
     final displayName = ref.watch(displayNameProvider);
+    final avatarPath = ref.watch(avatarPathProvider);
     final shownName = displayName ?? user?.username ?? 'User';
     final loginName = user?.username;
 
@@ -172,69 +191,109 @@ class ProfileTab extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
         children: [
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => _editDisplayName(context, ref, shownName),
+          // ── Avatar + name card ────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: isLight ? AppColors.white : AppColors.gray900,
               borderRadius: BorderRadius.circular(22),
-              child: Ink(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: isLight ? AppColors.white : AppColors.gray900,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                    color: isLight ? AppColors.gray200 : AppColors.gray800,
-                    width: 1.2,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: isLight ? AppColors.primary : AppColors.accent,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        _initials(shownName),
-                        style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: isLight ? AppColors.onPrimary : AppColors.dark,
+              border: Border.all(
+                color: isLight ? AppColors.gray200 : AppColors.gray800,
+                width: 1.2,
+              ),
+            ),
+            child: Row(
+              children: [
+                // Avatar
+                GestureDetector(
+                  onTap: () => _changeAvatar(context, ref),
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: isLight ? AppColors.primary : AppColors.accent,
+                          borderRadius: BorderRadius.circular(20),
+                          image: avatarPath != null
+                              ? DecorationImage(
+                                  image: FileImage(File(avatarPath)),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
                         ),
+                        alignment: Alignment.center,
+                        child: avatarPath == null
+                            ? Text(
+                                _initials(shownName),
+                                style: TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: isLight
+                                      ? AppColors.onPrimary
+                                      : AppColors.dark,
+                                ),
+                              )
+                            : null,
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(shownName, style: theme.textTheme.headlineSmall),
-                          const SizedBox(height: 4),
-                          Text(
-                            loginName != null
-                                ? 'Login: $loginName · Tap to edit name'
-                                : 'Signed out',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: isLight
-                                  ? AppColors.gray500
-                                  : AppColors.gray400,
+                      // Camera badge
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            color: isLight
+                                ? AppColors.skyBlue
+                                : AppColors.softBlue,
+                            borderRadius: BorderRadius.circular(7),
+                            border: Border.all(
+                              color:
+                                  isLight ? AppColors.white : AppColors.gray900,
+                              width: 2,
                             ),
                           ),
-                        ],
+                          child: const Icon(
+                            Icons.camera_alt_rounded,
+                            size: 12,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
-                    ),
-                    Icon(
-                      Icons.edit_outlined,
-                      size: 20,
-                      color: isLight ? AppColors.gray500 : AppColors.gray400,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(shownName, style: theme.textTheme.headlineSmall),
+                      const SizedBox(height: 4),
+                      Text(
+                        loginName != null
+                            ? 'Login: $loginName'
+                            : 'Signed out',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: isLight
+                              ? AppColors.gray500
+                              : AppColors.gray400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => _editDisplayName(context, ref, shownName),
+                  icon: Icon(
+                    Icons.edit_outlined,
+                    size: 20,
+                    color: isLight ? AppColors.gray500 : AppColors.gray400,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 22),

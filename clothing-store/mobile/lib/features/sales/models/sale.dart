@@ -38,6 +38,8 @@ class SaleDetail {
     required this.remainingAmount,
     required this.createdAt,
     required this.items,
+    this.customerName,
+    this.notes,
   });
 
   factory SaleDetail.fromJson(Map<String, dynamic> json) {
@@ -54,6 +56,8 @@ class SaleDetail {
       totalAmount: (json['totalAmount'] as num).toInt(),
       paidAmount: (json['paidAmount'] as num).toInt(),
       remainingAmount: (json['remainingAmount'] as num?)?.toInt() ?? 0,
+      customerName: json['customerName'] as String?,
+      notes: json['notes'] as String?,
       createdAt: parsed ?? DateTime.now(),
       items: rawItems
           .map(
@@ -67,10 +71,13 @@ class SaleDetail {
   final int totalAmount;
   final int paidAmount;
   final int remainingAmount;
+  final String? customerName;
+  final String? notes;
   final DateTime createdAt;
   final List<SaleItemDetail> items;
 
   int get itemCount => items.fold<int>(0, (sum, i) => sum + i.quantity);
+  bool get hasDebt => remainingAmount > 0;
 }
 
 class SaleHeader {
@@ -81,6 +88,8 @@ class SaleHeader {
     required this.remainingAmount,
     required this.itemCount,
     required this.createdAt,
+    this.customerName,
+    this.notes,
   });
 
   factory SaleHeader.fromJson(Map<String, dynamic> json) {
@@ -97,6 +106,8 @@ class SaleHeader {
       paidAmount: (json['paidAmount'] as num).toInt(),
       remainingAmount: (json['remainingAmount'] as num?)?.toInt() ?? 0,
       itemCount: (json['itemCount'] as num?)?.toInt() ?? 0,
+      customerName: json['customerName'] as String?,
+      notes: json['notes'] as String?,
       createdAt: parsed ?? DateTime.now(),
     );
   }
@@ -105,8 +116,12 @@ class SaleHeader {
   final int totalAmount;
   final int paidAmount;
   final int remainingAmount;
+  final String? customerName;
+  final String? notes;
   final int itemCount;
   final DateTime createdAt;
+
+  bool get hasDebt => remainingAmount > 0;
 }
 
 class PaginatedSales {
