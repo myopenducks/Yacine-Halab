@@ -277,7 +277,8 @@ class AppTheme {
   static NavigationBarThemeData _buildNavBar({
     required Color background,
     required Color indicator,
-    required Color selected,
+    required Color selectedIcon,
+    required Color selectedLabel,
     required Color unselected,
   }) {
     return NavigationBarThemeData(
@@ -294,14 +295,14 @@ class AppTheme {
           fontFamily: fontFamily,
           fontSize: 12,
           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-          color: isSelected ? selected : unselected,
+          color: isSelected ? selectedLabel : unselected,
           letterSpacing: 0.1,
         );
       }),
       iconTheme: WidgetStateProperty.resolveWith((s) {
         final isSelected = s.contains(WidgetState.selected);
         return IconThemeData(
-          color: isSelected ? selected : unselected,
+          color: isSelected ? selectedIcon : unselected,
           size: 24,
         );
       }),
@@ -432,7 +433,8 @@ class AppTheme {
       navigationBarTheme: _buildNavBar(
         background: AppColors.card,
         indicator: AppColors.primary,
-        selected: AppColors.onPrimary,
+        selectedIcon: AppColors.onPrimary,
+        selectedLabel: AppColors.secondary,
         unselected: AppColors.textMuted,
       ),
       inputDecorationTheme: _buildInput(
@@ -543,7 +545,8 @@ class AppTheme {
       navigationBarTheme: _buildNavBar(
         background: AppColors.cardDark,
         indicator: AppColors.accent,
-        selected: AppColors.dark,
+        selectedIcon: AppColors.dark,
+        selectedLabel: AppColors.accent,
         unselected: AppColors.textMutedDark,
       ),
       inputDecorationTheme: _buildInput(
