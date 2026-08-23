@@ -15,51 +15,38 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isLight = theme.brightness == Brightness.light;
+    final isLight = Theme.of(context).brightness == Brightness.light;
     final txtColor = textColor ?? (isLight ? AppColors.dark : AppColors.surfaceLight);
 
     final iconWidget = Container(
       width: size,
       height: size,
+      padding: EdgeInsets.all(size * 0.12),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primary,
-            AppColors.secondary,
-          ],
-        ),
+        color: isLight ? AppColors.card : AppColors.cardDark,
         borderRadius: BorderRadius.circular(size * 0.28),
+        border: Border.all(
+          color: isLight ? AppColors.border : AppColors.borderDark,
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.35),
+            color: AppColors.primary.withValues(alpha: 0.2),
             blurRadius: size * 0.25,
-            offset: Offset(0, size * 0.1),
+            offset: Offset(0, size * 0.08),
           ),
         ],
       ),
-      child: Center(
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Subtle glow circle behind icon
-            Container(
-              width: size * 0.65,
-              height: size * 0.65,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.accent.withValues(alpha: 0.25),
-              ),
-            ),
-            Icon(
-              Icons.checkroom_rounded,
-              size: size * 0.54,
-              color: AppColors.surfaceLight,
-            ),
-          ],
-        ),
+      child: Image.asset(
+        'assets/icon/app_icon.png',
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return Icon(
+            Icons.checkroom_rounded,
+            size: size * 0.54,
+            color: AppColors.primary,
+          );
+        },
       ),
     );
 
