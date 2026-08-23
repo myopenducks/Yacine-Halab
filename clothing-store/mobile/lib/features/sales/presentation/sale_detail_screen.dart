@@ -26,59 +26,105 @@ class SaleDetailScreen extends ConsumerWidget {
     final nameCtrl = TextEditingController(text: sale.customerName ?? '');
     final notesCtrl = TextEditingController(text: sale.notes ?? '');
 
-    final result = await showDialog<bool>(
+    final result = await showModalBottomSheet<bool>(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              const Icon(Icons.edit_note_rounded, size: 24),
-              const SizedBox(width: 8),
-              Text(
-                strings.editCustomerNotes,
-                style: const TextStyle(
-                  fontFamily: AppTheme.fontFamily,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18,
-                ),
-              ),
-            ],
+        final isLight = Theme.of(ctx).brightness == Brightness.light;
+        return Container(
+          decoration: BoxDecoration(
+            color: isLight ? AppColors.white : AppColors.cardDark,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          content: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            top: 20,
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isLight ? AppColors.border : AppColors.borderDark,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Icon(Icons.edit_note_rounded, size: 24, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      strings.editCustomerNotes,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
                 TextField(
                   controller: nameCtrl,
                   decoration: InputDecoration(
                     labelText: strings.customerName,
                     hintText: 'e.g. Yacine',
                     prefixIcon: const Icon(Icons.person_outline),
+                    filled: true,
+                    fillColor: isLight ? AppColors.inputFill : AppColors.inputFillDark,
                   ),
                 ),
                 const SizedBox(height: 14),
                 TextField(
                   controller: notesCtrl,
-                  maxLines: 3,
+                  maxLines: 4,
+                  minLines: 3,
                   decoration: InputDecoration(
                     labelText: strings.notes,
                     hintText: 'e.g. Paid 1000 DA, remaining 6520 DA',
-                    prefixIcon: const Icon(Icons.note_outlined),
+                    alignLabelWithHint: true,
+                    filled: true,
+                    fillColor: isLight ? AppColors.inputFill : AppColors.inputFillDark,
                   ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 50,
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: Text(strings.cancel),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: SizedBox(
+                        height: 50,
+                        child: FilledButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: Text(strings.saveChanges),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(strings.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(strings.saveChanges),
-            ),
-          ],
         );
       },
     );
