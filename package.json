@@ -1,0 +1,13 @@
+{
+  "name": "yacine-halab",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Deploy wrapper — API lives in clothing-store/backend",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "npm ci --prefix clothing-store/backend && npm run build --prefix clothing-store/backend",
+    "start": "npm run start --prefix clothing-store/backend"
+  }
+}
