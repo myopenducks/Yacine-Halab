@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/routes/app_router.dart';
+import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/money.dart';
@@ -187,6 +188,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
+    final strings = ref.watch(appStringsProvider);
     final filters = ref.watch(salesFiltersProvider);
     final list = ref.watch(salesListProvider);
     final debtCount = ref.watch(debtBadgeCountProvider);
@@ -230,7 +232,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [
                 _FilterChip(
-                  label: 'All',
+                  label: strings.all,
                   selected: filters.preset == SalesDatePreset.all && !filters.debtOnly,
                   onTap: () {
                     if (filters.debtOnly) {
@@ -241,33 +243,32 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: unpaidDebts > 0 ? '🔴 Debts ($unpaidDebts)' : 'Debts',
+                  label: unpaidDebts > 0 ? '${strings.debts} ($unpaidDebts)' : strings.debts,
                   selected: filters.debtOnly,
-                  icon: Icons.warning_amber_rounded,
                   onTap: () => ref.read(salesFiltersProvider.notifier).toggleDebtOnly(),
                   accentColor: AppColors.debtRed,
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Today',
+                  label: strings.today,
                   selected: filters.preset == SalesDatePreset.today && !filters.debtOnly,
                   onTap: () => ref.read(salesFiltersProvider.notifier).setPreset(SalesDatePreset.today),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Week',
+                  label: strings.week,
                   selected: filters.preset == SalesDatePreset.week && !filters.debtOnly,
                   onTap: () => ref.read(salesFiltersProvider.notifier).setPreset(SalesDatePreset.week),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Month',
+                  label: strings.month,
                   selected: filters.preset == SalesDatePreset.month && !filters.debtOnly,
                   onTap: () => ref.read(salesFiltersProvider.notifier).setPreset(SalesDatePreset.month),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: filters.preset == SalesDatePreset.custom ? _customLabel(filters) : 'Range',
+                  label: filters.preset == SalesDatePreset.custom ? _customLabel(filters) : strings.range,
                   selected: filters.preset == SalesDatePreset.custom,
                   icon: Icons.date_range_outlined,
                   onTap: _pickCustomRange,

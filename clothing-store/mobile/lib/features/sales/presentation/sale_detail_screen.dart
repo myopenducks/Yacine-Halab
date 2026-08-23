@@ -267,13 +267,6 @@ class SaleDetailScreen extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        // Quick Edit Icon
-                        IconButton(
-                          icon: const Icon(Icons.edit_note_rounded, size: 28),
-                          tooltip: 'Edit name / notes',
-                          color: AppColors.primary,
-                          onPressed: () => _openEditDialog(context, ref, sale),
-                        ),
                       ],
                     ),
                     if (sale.customerName != null && sale.customerName!.isNotEmpty) ...[
@@ -619,12 +612,6 @@ class SaleDetailScreen extends ConsumerWidget {
                                   fontSize: 13,
                                   color: isLight ? AppColors.dark : AppColors.onDark,
                                 ),
-                              ),
-                              const Spacer(),
-                              Icon(
-                                Icons.edit_outlined,
-                                size: 16,
-                                color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
                               ),
                             ],
                           ),

@@ -666,7 +666,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                                     ),
                                     icon: const Icon(Icons.add, size: 16),
                                     label: Text(
-                                      isFrench ? 'Ajouter' : 'Add',
+                                      strings.isFrench ? 'Ajouter' : 'Add',
                                       style: const TextStyle(
                                         fontFamily: AppTheme.fontFamily,
                                         fontSize: 12,
