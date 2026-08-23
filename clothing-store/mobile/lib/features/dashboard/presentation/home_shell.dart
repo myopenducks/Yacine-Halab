@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../sales/providers/sales_history_provider.dart';
 
@@ -9,40 +10,6 @@ class HomeShell extends ConsumerWidget {
   const HomeShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
-
-  static const List<TabConfig> tabs = [
-    TabConfig(
-      label: 'Home',
-      icon: Icons.home_outlined,
-      activeIcon: Icons.home,
-      location: '/',
-    ),
-    TabConfig(
-      label: 'Products',
-      icon: Icons.storefront_outlined,
-      activeIcon: Icons.storefront,
-      location: '/products',
-    ),
-    TabConfig(
-      label: 'Sale',
-      icon: Icons.point_of_sale_outlined,
-      activeIcon: Icons.point_of_sale,
-      location: '/cart',
-    ),
-    TabConfig(
-      label: 'History',
-      icon: Icons.receipt_long_outlined,
-      activeIcon: Icons.receipt_long,
-      location: '/history',
-      hasDebtBadge: true,
-    ),
-    TabConfig(
-      label: 'Profile',
-      icon: Icons.person_outline,
-      activeIcon: Icons.person,
-      location: '/profile',
-    ),
-  ];
 
   void _goToBranch(int index) {
     navigationShell.goBranch(
@@ -53,10 +20,44 @@ class HomeShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final isLight = theme.brightness == Brightness.light;
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final strings = ref.watch(appStringsProvider);
     final debtCount = ref.watch(debtBadgeCountProvider);
     final hasDebt = debtCount.valueOrNull != null && debtCount.valueOrNull! > 0;
+
+    final tabs = [
+      TabConfig(
+        label: strings.navHome,
+        icon: Icons.home_outlined,
+        activeIcon: Icons.home,
+        location: '/',
+      ),
+      TabConfig(
+        label: strings.navProducts,
+        icon: Icons.storefront_outlined,
+        activeIcon: Icons.storefront,
+        location: '/products',
+      ),
+      TabConfig(
+        label: strings.navSale,
+        icon: Icons.point_of_sale_outlined,
+        activeIcon: Icons.point_of_sale,
+        location: '/cart',
+      ),
+      TabConfig(
+        label: strings.navHistory,
+        icon: Icons.receipt_long_outlined,
+        activeIcon: Icons.receipt_long,
+        location: '/history',
+        hasDebtBadge: true,
+      ),
+      TabConfig(
+        label: strings.navProfile,
+        icon: Icons.person_outline,
+        activeIcon: Icons.person,
+        location: '/profile',
+      ),
+    ];
 
     return Scaffold(
       body: navigationShell,
@@ -65,7 +66,7 @@ class HomeShell extends ConsumerWidget {
           color: isLight ? AppColors.white : AppColors.gray900,
           border: Border(
             top: BorderSide(
-              color: isLight ? AppColors.gray200 : AppColors.gray800,
+              color: isLight ? AppColors.border : AppColors.borderDark,
               width: 1,
             ),
           ),

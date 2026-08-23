@@ -129,6 +129,50 @@ class ProfileTab extends ConsumerWidget {
     );
   }
 
+  void _openLanguageSheet(BuildContext context, WidgetRef ref) {
+    final current = ref.read(localeProvider);
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text(
+                  'Language / Langue',
+                  style: Theme.of(ctx).textTheme.titleMedium,
+                ),
+              ),
+              _ThemeOptionTile(
+                label: 'Français 🇫🇷 (Défaut)',
+                selected: current.languageCode == 'fr',
+                onTap: () async {
+                  await ref
+                      .read(settingsProvider.notifier)
+                      .setLocale(const Locale('fr'));
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+              ),
+              _ThemeOptionTile(
+                label: 'English 🇬🇧',
+                selected: current.languageCode == 'en',
+                onTap: () async {
+                  await ref
+                      .read(settingsProvider.notifier)
+                      .setLocale(const Locale('en'));
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _openAbout(BuildContext context) {
     showAboutDialog(
       context: context,
@@ -321,6 +365,15 @@ class ProfileTab extends ConsumerWidget {
           const SizedBox(height: 22),
           _SectionTitle(label: 'App', isLight: isLight),
           const SizedBox(height: 10),
+          _TileRow(
+            label: 'Language / Langue',
+            subtitle: ref.watch(localeProvider).languageCode == 'fr'
+                ? 'Français 🇫🇷'
+                : 'English 🇬🇧',
+            icon: Icons.language_rounded,
+            isDivider: true,
+            onTap: () => _openLanguageSheet(context, ref),
+          ),
           _TileRow(
             label: 'Theme',
             subtitle: 'Light, dark, or system',

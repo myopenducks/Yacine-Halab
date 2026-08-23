@@ -18,16 +18,17 @@ class ClothingStoreApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(localeProvider);
+
     return MaterialApp.router(
       title: 'Boutique Store',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,
-      // Material/Cupertino delegates ship fr_FR — DA amounts still use fr_DZ in money.dart.
-      locale: const Locale('fr', 'FR'),
+      locale: locale,
       supportedLocales: const [
-        Locale('fr', 'FR'),
+        Locale('fr'),
         Locale('en'),
       ],
       localizationsDelegates: const [
