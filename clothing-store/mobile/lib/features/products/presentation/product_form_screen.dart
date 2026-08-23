@@ -140,28 +140,37 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) {
-        final isLight = Theme.of(ctx).brightness == Brightness.light;
         return AlertDialog(
           title: const Text('Delete product?'),
           content: const Text(
             'This permanently removes the product. Products with sales history cannot be deleted.',
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(
-                'Cancel',
-                style: TextStyle(
-                  color: isLight ? AppColors.gray700 : AppColors.gray300,
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text(
-                'Delete',
-                style: TextStyle(color: AppColors.danger),
-              ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.danger,
+                      ),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Delete'),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         );

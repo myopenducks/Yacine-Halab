@@ -198,14 +198,30 @@ class DashboardHomeTab extends ConsumerWidget {
                 ],
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () =>
-                      Navigator.pop(ctx, (month: month, year: year)),
-                  child: const Text('Apply'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 46,
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: SizedBox(
+                        height: 46,
+                        child: FilledButton(
+                          onPressed: () =>
+                              Navigator.pop(ctx, (month: month, year: year)),
+                          child: const Text('Apply'),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             );

@@ -159,14 +159,30 @@ class SaleDetailScreen extends ConsumerWidget {
             'Remaining due is ${formatDAAmount(sale.remainingAmount)}.\nMark this sale as fully paid?',
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: AppColors.success),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Mark Fully Paid'),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 44,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(backgroundColor: AppColors.success),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Mark Fully Paid'),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         );
