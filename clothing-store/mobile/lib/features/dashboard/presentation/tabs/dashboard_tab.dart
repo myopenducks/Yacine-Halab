@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -22,6 +24,7 @@ class DashboardHomeTab extends ConsumerWidget {
     final isLight = theme.brightness == Brightness.light;
     final auth = ref.watch(authNotifierProvider);
     final displayName = ref.watch(displayNameProvider);
+    final avatarPath = ref.watch(avatarPathProvider);
     final name = displayName ?? auth.user?.username ?? 'Shop';
     final filter = ref.watch(dashboardFilterProvider);
     final summaryAsync = ref.watch(dashboardSummaryProvider);
@@ -32,9 +35,13 @@ class DashboardHomeTab extends ConsumerWidget {
       appBar: AppBar(
         title: Row(
           children: [
-            _Avatar(
-              size: 36,
-              text: _initials(name),
+            GestureDetector(
+              onTap: () => context.go(AppRouteNames.homeProfilePath),
+              child: _Avatar(
+                size: 42,
+                text: _initials(name),
+                imagePath: avatarPath,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -570,31 +577,50 @@ class _CategorySkeleton extends StatelessWidget {
 }
 
 class _Avatar extends StatelessWidget {
-  const _Avatar({required this.size, required this.text});
+  const _Avatar({
+    required this.size,
+    required this.text,
+    this.imagePath,
+  });
 
   final double size;
   final String text;
+  final String? imagePath;
 
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
+    final hasImage = imagePath != null && imagePath!.isNotEmpty && File(imagePath!).existsSync();
+
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: isLight ? AppColors.gray100 : AppColors.gray800,
+        color: isLight ? AppColors.primary : AppColors.accent,
         shape: BoxShape.circle,
+        border: Border.all(
+          color: isLight ? AppColors.border : AppColors.borderDark,
+          width: 1.5,
+        ),
+        image: hasImage
+            ? DecorationImage(
+                image: FileImage(File(imagePath!)),
+                fit: BoxFit.cover,
+              )
+            : null,
       ),
       alignment: Alignment.center,
-      child: Text(
-        text,
-        style: TextStyle(
-          fontFamily: AppTheme.fontFamily,
-          fontWeight: FontWeight.w700,
-          fontSize: 13,
-          color: isLight ? AppColors.black : AppColors.white,
-        ),
-      ),
+      child: hasImage
+          ? null
+          : Text(
+              text,
+              style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontWeight: FontWeight.w800,
+                fontSize: size * 0.38,
+                color: isLight ? AppColors.onPrimary : AppColors.dark,
+              ),
+            ),
     );
   }
 }
