@@ -31,6 +31,29 @@ async function main() {
 
   console.log('[migrate] applying migrations from', migrationsFolder);
   await migrate(db, { migrationsFolder });
+
+  // Auto-seed initial categories and default admin if missing
+  const INITIAL_CATEGORIES = ['T-Shirt', 'Shoes', 'Slippers', 'Shorts', 'Pants', 'Sets'];
+  for (const name of INITIAL_CATEGORIES) {
+    await db
+      .insert(schema.categories)
+      .values({ name })
+      .onDuplicateKeyUpdate({ set: { name } });
+  }
+
+  const existingUsers = await db.select().from(schema.users).limit(1);
+  if (existingUsers.length === 0) {
+    const { hash } = await import('argon2');
+    const adminUsername = process.env.SEED_ADMIN_USERNAME ?? 'admin';
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'admin123';
+    const passwordHash = await hash(adminPassword);
+    await db.insert(schema.users).values({
+      username: adminUsername,
+      passwordHash,
+    });
+    console.log(`[migrate] created default admin user (${adminUsername})`);
+  }
+
   await connection.end();
   console.log('[migrate] done');
 }
