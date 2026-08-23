@@ -1,0 +1,41 @@
+name: clothing_store_mobile
+description: Clothing store inventory & sales management mobile app (MVP).
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: '>=3.24.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Network
+  dio: ^5.5.0+1
+
+  # Navigation
+  go_router: ^14.2.3
+
+  # Secure storage (JWT token)
+  flutter_secure_storage: ^9.2.2
+
+  # Formatting (dates, numbers / DA currency)
+  intl: ^0.20.2
+
+  # Shared preferences (lightweight non-secret settings)
+  shared_preferences: ^2.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
