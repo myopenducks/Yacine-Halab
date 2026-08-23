@@ -40,6 +40,13 @@ export const recordPaymentSchema = z.object({
 
 export type RecordPaymentDto = z.infer<typeof recordPaymentSchema>;
 
+export const updateSaleSchema = z.object({
+  customerName: z.string().trim().max(120).nullable().optional(),
+  notes: z.string().trim().max(500).nullable().optional(),
+});
+
+export type UpdateSaleDto = z.infer<typeof updateSaleSchema>;
+
 export interface SaleItemDetail {
   id: number;
   productId: number;

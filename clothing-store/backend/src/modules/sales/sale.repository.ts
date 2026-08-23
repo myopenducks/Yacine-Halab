@@ -230,6 +230,21 @@ export class SaleRepository {
     await this.db.update(sales).set(patch).where(eq(sales.id, id));
   }
 
+  async updateSale(
+    id: number,
+    data: {
+      customerName?: string | null;
+      notes?: string | null;
+    },
+  ): Promise<void> {
+    const patch: Partial<typeof sales.$inferInsert> = {};
+    if (data.customerName !== undefined) patch.customerName = data.customerName;
+    if (data.notes !== undefined) patch.notes = data.notes;
+    if (Object.keys(patch).length > 0) {
+      await this.db.update(sales).set(patch).where(eq(sales.id, id));
+    }
+  }
+
   async aggregateDebts(): Promise<{ unpaidDebtCount: number; totalUnpaidDebtDA: number }> {
     const debtWhere = sql`${sales.totalAmount} > ${sales.paidAmount}`;
     const q = this.db

@@ -34,4 +34,11 @@ export class SaleHandler {
     const result = await this.service.recordPayment(id, dto);
     return ok(result);
   }
+
+  async update(req: FastifyRequest) {
+    const { id } = saleIdParamSchema.parse(req.params);
+    const dto = (await import('./sale.schema')).updateSaleSchema.parse(req.body);
+    const result = await this.service.update(id, dto);
+    return ok(result);
+  }
 }

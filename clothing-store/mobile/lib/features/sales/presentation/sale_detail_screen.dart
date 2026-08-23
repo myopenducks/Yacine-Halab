@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/utils/date.dart';
@@ -7,12 +8,97 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../models/sale.dart';
 import '../providers/sales_history_provider.dart';
 
 class SaleDetailScreen extends ConsumerWidget {
   const SaleDetailScreen({super.key, required this.saleId});
 
   final int saleId;
+
+  Future<void> _openEditDialog(
+    BuildContext context,
+    WidgetRef ref,
+    SaleDetail sale,
+  ) async {
+    final nameCtrl = TextEditingController(text: sale.customerName ?? '');
+    final notesCtrl = TextEditingController(text: sale.notes ?? '');
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text(
+            'Edit Sale Details',
+            style: TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.w700),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Customer Name',
+                    hintText: 'e.g. Yacine',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: notesCtrl,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Notes',
+                    hintText: 'e.g. خلصني 1000 وتبقا...',
+                    prefixIcon: Icon(Icons.note_outlined),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == true && context.mounted) {
+      try {
+        await ref.read(saleServiceProvider).updateSale(
+              sale.id,
+              customerName: nameCtrl.text.trim().isEmpty ? null : nameCtrl.text.trim(),
+              notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
+            );
+        ref.invalidate(saleByIdProvider(sale.id));
+        ref.read(salesListProvider.notifier).refresh();
+        if (context.mounted) {
+          showAppSnackBar(context, 'Sale updated successfully', kind: AppSnackKind.success);
+        }
+      } catch (e) {
+        if (context.mounted) {
+          showAppSnackBar(context, 'Failed to update: $e', kind: AppSnackKind.error);
+        }
+      }
+    }
+  }
+
+  void _openPaymentSheet(BuildContext context, WidgetRef ref, SaleDetail sale) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _RecordPaymentSheet(sale: sale, parentRef: ref),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,6 +121,16 @@ class SaleDetailScreen extends ConsumerWidget {
             }
           },
         ),
+        actions: [
+          async.maybeWhen(
+            data: (sale) => IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Edit details',
+              onPressed: () => _openEditDialog(context, ref, sale),
+            ),
+            orElse: () => const SizedBox.shrink(),
+          ),
+        ],
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -55,6 +151,10 @@ class SaleDetailScreen extends ConsumerWidget {
           ),
         ),
         data: (sale) {
+          final pctPaid = sale.totalAmount > 0
+              ? (sale.paidAmount / sale.totalAmount).clamp(0.0, 1.0)
+              : 1.0;
+
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
             children: [
@@ -63,47 +163,84 @@ class SaleDetailScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: isLight ? AppColors.white : AppColors.gray900,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(22),
                   border: Border.all(
                     color: isLight ? AppColors.gray200 : AppColors.gray800,
                     width: 1.2,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      formatDAAmount(sale.totalAmount),
-                      style: const TextStyle(
-                        fontFamily: AppTheme.fontFamily,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 28,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      dateFmt.format(sale.createdAt.toLocal()),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: isLight ? AppColors.gray500 : AppColors.gray400,
-                      ),
-                    ),
-                    if (sale.customerName != null) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.person_outline,
-                              size: 16,
-                              color: isLight
-                                  ? AppColors.skyBlue
-                                  : AppColors.softBlue),
-                          const SizedBox(width: 6),
-                          Text(
-                            sale.customerName!,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                formatDAAmount(sale.totalAmount),
+                                style: const TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 28,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                dateFmt.format(sale.createdAt.toLocal()),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: isLight ? AppColors.gray500 : AppColors.gray400,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
+                        // Quick Edit Icon
+                        IconButton(
+                          icon: const Icon(Icons.edit_note_rounded, size: 26),
+                          tooltip: 'Edit name / notes',
+                          color: isLight ? AppColors.secondary : AppColors.accent,
+                          onPressed: () => _openEditDialog(context, ref, sale),
+                        ),
+                      ],
+                    ),
+                    if (sale.customerName != null && sale.customerName!.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: isLight ? AppColors.gray100 : AppColors.gray800,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.person,
+                              size: 16,
+                              color: isLight ? AppColors.secondary : AppColors.accent,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              sale.customerName!,
+                              style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                color: isLight ? AppColors.gray900 : AppColors.onDark,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                     const SizedBox(height: 14),
@@ -112,17 +249,17 @@ class SaleDetailScreen extends ConsumerWidget {
                       runSpacing: 6,
                       children: [
                         _MetaChip(
-                          label: '${sale.itemCount} units',
+                          label: '${sale.itemCount} items',
                           isLight: isLight,
                         ),
                         _MetaChip(
                           label: 'Paid ${formatDAAmount(sale.paidAmount)}',
                           isLight: isLight,
+                          color: AppColors.success,
                         ),
                         if (sale.hasDebt)
                           _MetaChip(
-                            label:
-                                'Due ${formatDAAmount(sale.remainingAmount)}',
+                            label: 'Due ${formatDAAmount(sale.remainingAmount)}',
                             isLight: isLight,
                             warn: true,
                           ),
@@ -132,34 +269,199 @@ class SaleDetailScreen extends ConsumerWidget {
                 ),
               ),
 
-              // ── Notes ────────────────────────────────────────────────
+              // ── Debt / Installments Card (بطاقة الدين والدفعات) ────────
+              const SizedBox(height: 16),
+              if (sale.hasDebt)
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: isLight ? const Color(0xFFFFF5F5) : const Color(0xFF2C1E1E),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.debtRed.withValues(alpha: 0.35),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.debtRed.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.warning_amber_rounded,
+                              size: 20,
+                              color: AppColors.debtRed,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Outstanding Debt (الكريدي)',
+                                  style: TextStyle(
+                                    fontFamily: AppTheme.fontFamily,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                    color: AppColors.debtRed,
+                                  ),
+                                ),
+                                Text(
+                                  'This customer has not paid 100%',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.debtRed,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            formatDAAmount(sale.remainingAmount),
+                            style: const TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 19,
+                              color: AppColors.debtRed,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(99),
+                        child: LinearProgressIndicator(
+                          value: pctPaid,
+                          minHeight: 8,
+                          backgroundColor: AppColors.debtRed.withValues(alpha: 0.15),
+                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Paid: ${formatDAAmount(sale.paidAmount)} (${(pctPaid * 100).toInt()}%)',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isLight ? AppColors.gray600 : AppColors.gray400,
+                            ),
+                          ),
+                          Text(
+                            'Left: ${formatDAAmount(sale.remainingAmount)}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.debtRed,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.debtRed,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          icon: const Icon(Icons.add_card_rounded, size: 20),
+                          label: const Text(
+                            'Record Payment / تسديد دفعة',
+                            style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
+                          ),
+                          onPressed: () => _openPaymentSheet(context, ref, sale),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isLight ? const Color(0xFFF0FDF4) : const Color(0xFF1E2E24),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: AppColors.success.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.check_circle_rounded, color: AppColors.success, size: 22),
+                      SizedBox(width: 10),
+                      Text(
+                        'Fully Paid — خلاص كامل',
+                        style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.success,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // ── Notes Card ───────────────────────────────────────────
               if (sale.notes != null && sale.notes!.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isLight
-                        ? AppColors.warmLinen.withValues(alpha: 0.6)
-                        : AppColors.gray800,
-                    borderRadius: BorderRadius.circular(16),
+                    color: isLight ? AppColors.white : AppColors.gray900,
+                    borderRadius: BorderRadius.circular(18),
                     border: Border.all(
-                      color: isLight ? AppColors.border : AppColors.gray700,
+                      color: isLight ? AppColors.gray200 : AppColors.gray800,
                     ),
                   ),
-                  child: Row(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.note_outlined,
-                          size: 18,
-                          color: isLight
-                              ? AppColors.skyBlue
-                              : AppColors.softBlue),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          sale.notes!,
-                          style: theme.textTheme.bodyMedium,
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.note_alt_outlined,
+                            size: 18,
+                            color: isLight ? AppColors.secondary : AppColors.accent,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Notes / ملاحظات',
+                            style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              color: isLight ? AppColors.gray700 : AppColors.gray300,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        sale.notes!,
+                        style: TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 14,
+                          height: 1.4,
+                          color: isLight ? AppColors.gray900 : AppColors.onDark,
                         ),
                       ),
                     ],
@@ -167,14 +469,11 @@ class SaleDetailScreen extends ConsumerWidget {
                 ),
               ],
 
-              // ── Debt payment banner ───────────────────────────────────
-              if (sale.hasDebt) ...[
-                const SizedBox(height: 16),
-                _RecordPaymentBanner(sale: sale, ref: ref, isLight: isLight),
-              ],
-
-              const SizedBox(height: 22),
-              Text('Items', style: theme.textTheme.headlineSmall),
+              const SizedBox(height: 24),
+              Text(
+                'Items (${sale.items.length})',
+                style: theme.textTheme.headlineSmall?.copyWith(fontSize: 18),
+              ),
               const SizedBox(height: 12),
               ...sale.items.map((item) {
                 return Padding(
@@ -203,9 +502,7 @@ class SaleDetailScreen extends ConsumerWidget {
                               Text(
                                 '${item.quantity} × ${formatDAAmount(item.unitPrice)}',
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: isLight
-                                      ? AppColors.gray500
-                                      : AppColors.gray400,
+                                  color: isLight ? AppColors.gray500 : AppColors.gray400,
                                 ),
                               ),
                             ],
@@ -224,12 +521,13 @@ class SaleDetailScreen extends ConsumerWidget {
                   ),
                 );
               }),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
               SizedBox(
-                height: 56,
-                child: FilledButton(
+                height: 54,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.add_shopping_cart_rounded),
+                  label: const Text('New sale'),
                   onPressed: () => context.go('/cart'),
-                  child: const Text('New sale'),
                 ),
               ),
             ],
@@ -240,51 +538,72 @@ class SaleDetailScreen extends ConsumerWidget {
   }
 }
 
-// ── Record payment banner ─────────────────────────────────────────────────────
+// ── Payment Bottom Sheet (تسجيل الدفعات) ──────────────────────────────────────
 
-class _RecordPaymentBanner extends StatefulWidget {
-  const _RecordPaymentBanner({
+class _RecordPaymentSheet extends StatefulWidget {
+  const _RecordPaymentSheet({
     required this.sale,
-    required this.ref,
-    required this.isLight,
+    required this.parentRef,
   });
 
-  final dynamic sale;
-  final WidgetRef ref;
-  final bool isLight;
+  final SaleDetail sale;
+  final WidgetRef parentRef;
 
   @override
-  State<_RecordPaymentBanner> createState() => _RecordPaymentBannerState();
+  State<_RecordPaymentSheet> createState() => _RecordPaymentSheetState();
 }
 
-class _RecordPaymentBannerState extends State<_RecordPaymentBanner> {
-  final _ctrl = TextEditingController();
+class _RecordPaymentSheetState extends State<_RecordPaymentSheet> {
+  final _amountCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
   bool _loading = false;
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _amountCtrl.dispose();
+    _noteCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _submit(BuildContext context, WidgetRef ref, int saleId) async {
-    final amount = int.tryParse(_ctrl.text.trim());
+  void _setPreset(int amount) {
+    final capped = amount.clamp(1, widget.sale.remainingAmount);
+    _amountCtrl.text = '$capped';
+  }
+
+  Future<void> _submit() async {
+    final amount = int.tryParse(_amountCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
     if (amount == null || amount <= 0) {
-      showAppSnackBar(context, 'Enter a valid amount', kind: AppSnackKind.error);
+      showAppSnackBar(context, 'Please enter a valid amount', kind: AppSnackKind.error);
       return;
     }
+    if (amount > widget.sale.remainingAmount) {
+      showAppSnackBar(
+        context,
+        'Amount exceeds remaining debt of ${formatDAAmount(widget.sale.remainingAmount)}',
+        kind: AppSnackKind.error,
+      );
+      return;
+    }
+
     setState(() => _loading = true);
     try {
-      await ref.read(saleServiceProvider).recordPayment(saleId, amount);
-      if (!context.mounted) return;
-      ref.invalidate(saleByIdProvider(saleId));
-      ref.read(salesListProvider.notifier).refresh();
-      showAppSnackBar(context, 'Payment recorded',
-          kind: AppSnackKind.success);
-      _ctrl.clear();
+      await widget.parentRef.read(saleServiceProvider).recordPayment(
+            widget.sale.id,
+            amount,
+            note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+          );
+      if (!mounted) return;
+      widget.parentRef.invalidate(saleByIdProvider(widget.sale.id));
+      widget.parentRef.read(salesListProvider.notifier).refresh();
+      Navigator.pop(context);
+      showAppSnackBar(
+        context,
+        'Payment of ${formatDAAmount(amount)} recorded successfully!',
+        kind: AppSnackKind.success,
+      );
     } catch (e) {
-      if (!context.mounted) return;
-      showAppSnackBar(context, 'Failed: $e', kind: AppSnackKind.error);
+      if (!mounted) return;
+      showAppSnackBar(context, 'Payment failed: $e', kind: AppSnackKind.error);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -292,94 +611,160 @@ class _RecordPaymentBannerState extends State<_RecordPaymentBanner> {
 
   @override
   Widget build(BuildContext context) {
-    final isLight = widget.isLight;
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final remaining = widget.sale.remainingAmount;
+
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.debtRed.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.debtRed.withValues(alpha: 0.25),
-        ),
+        color: isLight ? AppColors.white : AppColors.gray900,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        top: 20,
+        left: 20,
+        right: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isLight ? AppColors.gray300 : AppColors.gray700,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(Icons.warning_amber_rounded,
-                  size: 18, color: AppColors.debtRed),
-              SizedBox(width: 8),
-              Text(
-                'Outstanding debt',
+              const Text(
+                'Record Payment / تسديد دفعة',
                 style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: AppColors.debtRed,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.debtRed.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  'Due ${formatDAAmount(remaining)}',
+                  style: const TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.debtRed,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Row(
+          const SizedBox(height: 16),
+
+          // Quick Presets
+          Wrap(
+            spacing: 8,
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _ctrl,
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(
-                    fontFamily: AppTheme.fontFamily,
-                    fontSize: 14,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Payment amount (DA)',
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    fillColor:
-                        isLight ? AppColors.inputFill : AppColors.inputFillDark,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(
-                          color: AppColors.debtRed.withValues(alpha: 0.4)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(
-                          color: AppColors.debtRed.withValues(alpha: 0.4)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColors.debtRed),
-                    ),
-                  ),
+              if (remaining >= 500)
+                ActionChip(
+                  label: const Text('+500 DA'),
+                  onPressed: () => _setPreset(500),
                 ),
-              ),
-              const SizedBox(width: 10),
-              SizedBox(
-                height: 48,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.debtRed,
-                    padding: const EdgeInsets.symmetric(horizontal: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: _loading
-                      ? null
-                      : () => _submit(context, widget.ref, widget.sale.id),
-                  child: _loading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('Pay'),
+              if (remaining >= 1000)
+                ActionChip(
+                  label: const Text('+1 000 DA'),
+                  onPressed: () => _setPreset(1000),
                 ),
+              if (remaining >= 2000)
+                ActionChip(
+                  label: const Text('+2 000 DA'),
+                  onPressed: () => _setPreset(2000),
+                ),
+              ActionChip(
+                backgroundColor: AppColors.success.withValues(alpha: 0.15),
+                label: const Text(
+                  'Pay Full Debt',
+                  style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w700),
+                ),
+                onPressed: () => _setPreset(remaining),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+
+          // Amount Input
+          TextField(
+            controller: _amountCtrl,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            style: const TextStyle(
+              fontFamily: AppTheme.fontFamily,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+            decoration: InputDecoration(
+              labelText: 'Payment Amount (DA)',
+              hintText: 'e.g. 1000',
+              prefixIcon: const Icon(Icons.payments_outlined),
+              suffixText: 'DA',
+              suffixStyle: const TextStyle(fontWeight: FontWeight.w700),
+              filled: true,
+              fillColor: isLight ? AppColors.inputFill : AppColors.inputFillDark,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Optional Note
+          TextField(
+            controller: _noteCtrl,
+            decoration: InputDecoration(
+              labelText: 'Note (Optional)',
+              hintText: 'e.g. دفعة ثانية عبر اليد',
+              prefixIcon: const Icon(Icons.description_outlined),
+              filled: true,
+              fillColor: isLight ? AppColors.inputFill : AppColors.inputFillDark,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Confirm Button
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.success,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onPressed: _loading ? null : _submit,
+              child: _loading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
+                    )
+                  : const Text(
+                      'Confirm Payment / تأكيد الدفع',
+                      style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+            ),
           ),
         ],
       ),
@@ -392,20 +777,21 @@ class _MetaChip extends StatelessWidget {
     required this.label,
     required this.isLight,
     this.warn = false,
+    this.color,
   });
 
   final String label;
   final bool isLight;
   final bool warn;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
+    final chipColor = color ?? (warn ? AppColors.debtRed : AppColors.secondary);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: warn
-            ? AppColors.debtRed.withValues(alpha: 0.12)
-            : (isLight ? AppColors.gray100 : AppColors.gray800),
+        color: chipColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -414,9 +800,7 @@ class _MetaChip extends StatelessWidget {
           fontFamily: AppTheme.fontFamily,
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: warn
-              ? AppColors.debtRed
-              : (isLight ? AppColors.gray700 : AppColors.gray300),
+          color: chipColor,
         ),
       ),
     );

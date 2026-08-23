@@ -36,4 +36,20 @@ export function registerSaleRoutes(
       return reply.status(200).send(result);
     },
   );
+
+  app.post(
+    '/api/v1/sales/:id/payment',
+    async (req, reply) => {
+      const result = await handler.recordPayment(req);
+      return reply.status(200).send(result);
+    },
+  );
+
+  app.patch(
+    '/api/v1/sales/:id',
+    async (req, reply) => {
+      const result = await handler.update(req);
+      return reply.status(200).send(result);
+    },
+  );
 }

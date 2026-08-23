@@ -62,10 +62,29 @@ class SaleService {
   }
 
   /// Record a partial or full payment for a debt sale.
-  Future<SaleDetail> recordPayment(int saleId, int amount) {
+  Future<SaleDetail> recordPayment(int saleId, int amount, {String? note}) {
     return _dio.post<SaleDetail>(
-      '/api/v1/sales/$saleId/payment',
-      body: {'amount': amount},
+      '/api/v1/sales/$saleId/payments',
+      body: {
+        'amount': amount,
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      },
+      dataFromJson: SaleDetail.fromJson,
+    );
+  }
+
+  /// Update customer name or notes of a sale.
+  Future<SaleDetail> updateSale(
+    int saleId, {
+    String? customerName,
+    String? notes,
+  }) {
+    return _dio.patch<SaleDetail>(
+      '/api/v1/sales/$saleId',
+      body: {
+        'customerName': customerName,
+        'notes': notes,
+      },
       dataFromJson: SaleDetail.fromJson,
     );
   }

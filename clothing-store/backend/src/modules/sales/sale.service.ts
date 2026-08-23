@@ -148,4 +148,13 @@ export class SaleService {
     await this.repo.updatePaidAmount(id, newPaidAmount, updatedNotes);
     return this.getById(id);
   }
+
+  async update(
+    id: number,
+    dto: { customerName?: string | null; notes?: string | null },
+  ): Promise<SaleDetail> {
+    await this.getById(id);
+    await this.repo.updateSale(id, dto);
+    return this.getById(id);
+  }
 }
