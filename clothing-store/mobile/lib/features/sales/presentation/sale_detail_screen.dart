@@ -28,9 +28,15 @@ class SaleDetailScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: const Text(
-            'Edit Sale Details',
-            style: TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.w700),
+          title: const Row(
+            children: [
+              Icon(Icons.edit_note_rounded, size: 24),
+              SizedBox(width: 8),
+              Text(
+                'Edit Customer & Notes',
+                style: TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.w700, fontSize: 18),
+              ),
+            ],
           ),
           content: SingleChildScrollView(
             child: Column(
@@ -39,7 +45,7 @@ class SaleDetailScreen extends ConsumerWidget {
                 TextField(
                   controller: nameCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'Customer Name',
+                    labelText: 'Customer Name (اسم الزبون)',
                     hintText: 'e.g. Yacine',
                     prefixIcon: Icon(Icons.person_outline),
                   ),
@@ -49,8 +55,8 @@ class SaleDetailScreen extends ConsumerWidget {
                   controller: notesCtrl,
                   maxLines: 3,
                   decoration: const InputDecoration(
-                    labelText: 'Notes',
-                    hintText: 'e.g. خلصني 1000 وتبقا...',
+                    labelText: 'Notes (ملاحظة)',
+                    hintText: 'e.g. خلصني 1000 وتبقا 6520',
                     prefixIcon: Icon(Icons.note_outlined),
                   ),
                 ),
@@ -64,7 +70,7 @@ class SaleDetailScreen extends ConsumerWidget {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Save'),
+              child: const Text('Save Changes'),
             ),
           ],
         );
@@ -86,6 +92,55 @@ class SaleDetailScreen extends ConsumerWidget {
       } catch (e) {
         if (context.mounted) {
           showAppSnackBar(context, 'Failed to update: $e', kind: AppSnackKind.error);
+        }
+      }
+    }
+  }
+
+  Future<void> _quickMarkPaid(BuildContext context, WidgetRef ref, SaleDetail sale) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text('Settle Entire Debt for Sale #${sale.id}?'),
+          content: Text(
+            'Remaining due is ${formatDAAmount(sale.remainingAmount)}.\nDo you want to mark this sale as fully paid (خلاص كامل)?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppColors.success),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Mark Fully Paid'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true && context.mounted) {
+      try {
+        await ref.read(saleServiceProvider).recordPayment(
+              sale.id,
+              sale.remainingAmount,
+              note: 'خلاص كامل (Full settlement)',
+            );
+        ref.invalidate(saleByIdProvider(sale.id));
+        ref.read(salesListProvider.notifier).refresh();
+        ref.invalidate(debtBadgeCountProvider);
+        if (context.mounted) {
+          showAppSnackBar(
+            context,
+            'Sale #${sale.id} settled and marked as fully paid! 🎉',
+            kind: AppSnackKind.success,
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          showAppSnackBar(context, 'Failed: $e', kind: AppSnackKind.error);
         }
       }
     }
@@ -158,7 +213,7 @@ class SaleDetailScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
             children: [
-              // ── Summary card ─────────────────────────────────────────
+              // ── Main Summary Card ────────────────────────────────────
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -206,7 +261,7 @@ class SaleDetailScreen extends ConsumerWidget {
                         ),
                         // Quick Edit Icon
                         IconButton(
-                          icon: const Icon(Icons.edit_note_rounded, size: 26),
+                          icon: const Icon(Icons.edit_note_rounded, size: 28),
                           tooltip: 'Edit name / notes',
                           color: isLight ? AppColors.secondary : AppColors.accent,
                           onPressed: () => _openEditDialog(context, ref, sale),
@@ -269,202 +324,303 @@ class SaleDetailScreen extends ConsumerWidget {
                 ),
               ),
 
-              // ── Debt / Installments Card (بطاقة الدين والدفعات) ────────
+              // ── Beautiful Debt & Payment Breakdown Card (الوضعية المالية) ────────
               const SizedBox(height: 16),
-              if (sale.hasDebt)
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: isLight ? const Color(0xFFFFF5F5) : const Color(0xFF2C1E1E),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppColors.debtRed.withValues(alpha: 0.35),
-                      width: 1.5,
-                    ),
+              Container(
+                decoration: BoxDecoration(
+                  color: isLight ? AppColors.white : AppColors.gray900,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: sale.hasDebt
+                        ? AppColors.debtRed.withValues(alpha: 0.35)
+                        : AppColors.success.withValues(alpha: 0.35),
+                    width: 1.5,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                  boxShadow: [
+                    BoxShadow(
+                      color: (sale.hasDebt ? AppColors.debtRed : AppColors.success)
+                          .withValues(alpha: 0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Header banner
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: sale.hasDebt
+                            ? (isLight ? const Color(0xFFFFF1F1) : const Color(0xFF331A1A))
+                            : (isLight ? const Color(0xFFF0FDF4) : const Color(0xFF16291C)),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                      ),
+                      child: Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppColors.debtRed.withValues(alpha: 0.15),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.warning_amber_rounded,
-                              size: 20,
-                              color: AppColors.debtRed,
+                          Icon(
+                            sale.hasDebt
+                                ? Icons.pending_actions_rounded
+                                : Icons.check_circle_rounded,
+                            size: 20,
+                            color: sale.hasDebt ? AppColors.debtRed : AppColors.success,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            sale.hasDebt
+                                ? 'Debt / الكريدي'
+                                : 'Payment Complete / خلاص كامل',
+                            style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: sale.hasDebt ? AppColors.debtRed : AppColors.success,
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Outstanding Debt (الكريدي)',
-                                  style: TextStyle(
-                                    fontFamily: AppTheme.fontFamily,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 15,
-                                    color: AppColors.debtRed,
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: (sale.hasDebt ? AppColors.debtRed : AppColors.success)
+                                  .withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${(pctPaid * 100).toInt()}% Paid',
+                              style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: sale.hasDebt ? AppColors.debtRed : AppColors.success,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Card Body
+                    Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Progress Bar
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(99),
+                            child: LinearProgressIndicator(
+                              value: pctPaid,
+                              minHeight: 8,
+                              backgroundColor: isLight ? AppColors.gray100 : AppColors.gray800,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                sale.hasDebt ? AppColors.terracotta : AppColors.success,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // 2-Column Metrics (Paid vs Remaining)
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: isLight ? AppColors.gray100 : AppColors.gray800,
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Paid (المدفوع)',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: isLight ? AppColors.gray500 : AppColors.gray400,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        formatDAAmount(sale.paidAmount),
+                                        style: const TextStyle(
+                                          fontFamily: AppTheme.fontFamily,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.success,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                Text(
-                                  'This customer has not paid 100%',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.debtRed,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: sale.hasDebt
+                                        ? (isLight ? const Color(0xFFFFECEC) : const Color(0xFF381C1C))
+                                        : (isLight ? AppColors.gray100 : AppColors.gray800),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Remaining (المتبقي)',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: sale.hasDebt
+                                              ? AppColors.debtRed
+                                              : (isLight ? AppColors.gray500 : AppColors.gray400),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        formatDAAmount(sale.remainingAmount),
+                                        style: TextStyle(
+                                          fontFamily: AppTheme.fontFamily,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                          color: sale.hasDebt
+                                              ? AppColors.debtRed
+                                              : (isLight ? AppColors.gray900 : AppColors.onDark),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          if (sale.hasDebt) ...[
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                // Record Payment / تسديد دفعة
+                                Expanded(
+                                  flex: 3,
+                                  child: SizedBox(
+                                    height: 48,
+                                    child: FilledButton.icon(
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                      ),
+                                      icon: const Icon(Icons.payments_outlined, size: 18),
+                                      label: const Text(
+                                        'Record Payment / تسديد',
+                                        style: TextStyle(
+                                          fontFamily: AppTheme.fontFamily,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      onPressed: () => _openPaymentSheet(context, ref, sale),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                // Quick Pay Full / خلاص كامل
+                                Expanded(
+                                  flex: 2,
+                                  child: SizedBox(
+                                    height: 48,
+                                    child: OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(color: AppColors.success, width: 1.5),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                      ),
+                                      onPressed: () => _quickMarkPaid(context, ref, sale),
+                                      child: const Text(
+                                        'Pay Full',
+                                        style: TextStyle(
+                                          fontFamily: AppTheme.fontFamily,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13,
+                                          color: AppColors.success,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                          Text(
-                            formatDAAmount(sale.remainingAmount),
-                            style: const TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 19,
-                              color: AppColors.debtRed,
-                            ),
-                          ),
+                          ],
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(99),
-                        child: LinearProgressIndicator(
-                          value: pctPaid,
-                          minHeight: 8,
-                          backgroundColor: AppColors.debtRed.withValues(alpha: 0.15),
-                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Paid: ${formatDAAmount(sale.paidAmount)} (${(pctPaid * 100).toInt()}%)',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: isLight ? AppColors.gray600 : AppColors.gray400,
-                            ),
-                          ),
-                          Text(
-                            'Left: ${formatDAAmount(sale.remainingAmount)}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.debtRed,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: FilledButton.icon(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.debtRed,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          icon: const Icon(Icons.add_card_rounded, size: 20),
-                          label: const Text(
-                            'Record Payment / تسديد دفعة',
-                            style: TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                            ),
-                          ),
-                          onPressed: () => _openPaymentSheet(context, ref, sale),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isLight ? const Color(0xFFF0FDF4) : const Color(0xFF1E2E24),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: AppColors.success.withValues(alpha: 0.3),
                     ),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.check_circle_rounded, color: AppColors.success, size: 22),
-                      SizedBox(width: 10),
-                      Text(
-                        'Fully Paid — خلاص كامل',
-                        style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.success,
-                        ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
+              ),
 
-              // ── Notes Card ───────────────────────────────────────────
+              // ── Notes Card (الملاحظات) ───────────────────────────────
               if (sale.notes != null && sale.notes!.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isLight ? AppColors.white : AppColors.gray900,
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _openEditDialog(context, ref, sale),
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: isLight ? AppColors.gray200 : AppColors.gray800,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                    child: Ink(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isLight ? AppColors.white : AppColors.gray900,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: isLight ? AppColors.gray200 : AppColors.gray800,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.note_alt_outlined,
-                            size: 18,
-                            color: isLight ? AppColors.secondary : AppColors.accent,
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.note_alt_outlined,
+                                size: 18,
+                                color: isLight ? AppColors.secondary : AppColors.accent,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Notes / ملاحظات (Tap to edit)',
+                                style: TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  color: isLight ? AppColors.gray700 : AppColors.gray300,
+                                ),
+                              ),
+                              const Spacer(),
+                              Icon(
+                                Icons.edit_outlined,
+                                size: 16,
+                                color: isLight ? AppColors.gray500 : AppColors.gray400,
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(height: 8),
                           Text(
-                            'Notes / ملاحظات',
+                            sale.notes!,
                             style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                              color: isLight ? AppColors.gray700 : AppColors.gray300,
+                              fontSize: 14,
+                              height: 1.4,
+                              color: isLight ? AppColors.gray900 : AppColors.onDark,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        sale.notes!,
-                        style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontSize: 14,
-                          height: 1.4,
-                          color: isLight ? AppColors.gray900 : AppColors.onDark,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ],
