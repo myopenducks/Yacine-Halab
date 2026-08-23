@@ -366,8 +366,46 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
                         ],
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Quantity',
+                          suffixIcon: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.remove_circle_outline_rounded),
+                                color: isLight ? AppColors.secondary : AppColors.accent,
+                                tooltip: 'Decrease quantity',
+                                onPressed: busy
+                                    ? null
+                                    : () {
+                                        final current =
+                                            int.tryParse(_qtyCtrl.text) ?? 0;
+                                        if (current > 0) {
+                                          HapticFeedback.selectionClick();
+                                          setState(() {
+                                            _qtyCtrl.text = '${current - 1}';
+                                          });
+                                        }
+                                      },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.add_circle_outline_rounded),
+                                color: isLight ? AppColors.secondary : AppColors.accent,
+                                tooltip: 'Increase quantity',
+                                onPressed: busy
+                                    ? null
+                                    : () {
+                                        final current =
+                                            int.tryParse(_qtyCtrl.text) ?? 0;
+                                        HapticFeedback.selectionClick();
+                                        setState(() {
+                                          _qtyCtrl.text = '${current + 1}';
+                                        });
+                                      },
+                              ),
+                              const SizedBox(width: 4),
+                            ],
+                          ),
                         ),
                         validator: _nonNegInt,
                       ),
