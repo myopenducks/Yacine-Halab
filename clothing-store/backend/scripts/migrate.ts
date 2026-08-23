@@ -3,14 +3,19 @@ import path from 'node:path';
 import mysql from 'mysql2/promise';
 import { drizzle } from 'drizzle-orm/mysql2';
 import { migrate } from 'drizzle-orm/mysql2/migrator';
+import { applyPlatformEnvDefaults, describeDbTarget } from '../src/config/platform-env';
 import * as schema from '../src/db';
 
 async function main() {
+  applyPlatformEnvDefaults();
+
   const host = process.env.DB_HOST ?? '127.0.0.1';
   const port = Number(process.env.DB_PORT ?? 3306);
   const user = process.env.DB_USER ?? 'root';
   const password = process.env.DB_PASSWORD ?? '';
   const database = process.env.DB_NAME ?? 'clothing_store';
+
+  console.log('[migrate] connecting to', describeDbTarget());
 
   const connection = await mysql.createConnection({
     host,
@@ -18,6 +23,7 @@ async function main() {
     user,
     password,
     database,
+    connectTimeout: 15_000,
   });
 
   const db = drizzle(connection, { schema, mode: 'default' });

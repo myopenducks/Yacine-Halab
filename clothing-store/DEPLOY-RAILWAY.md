@@ -37,13 +37,28 @@ Then set **Config file path** = `/clothing-store/backend/railway.toml`
 
 ## 3. Required environment variables (API service)
 
-| Variable | Example / notes |
-|----------|-----------------|
+Set these on the **API service** (not only on MySQL):
+
+| Variable | Value |
+|----------|--------|
 | `NODE_ENV` | `production` |
-| `JWT_SECRET` | 32+ random chars — `openssl rand -base64 48` |
-| `JWT_EXPIRES_IN` | `7d` |
-| `CORS_ORIGIN` | `*` or your app origin |
-| `PORT` | Railway sets this automatically — do not override unless needed |
+| `JWT_SECRET` | 32+ random chars — run `openssl rand -base64 48` |
+| `JWT_EXPIRES_IN` | `7d` (optional) |
+| `CORS_ORIGIN` | `*` (optional) |
+
+**Database** — either reference the MySQL service variables **or** rely on auto-mapping from Railway's `MYSQL*` names:
+
+| Variable | Railway reference |
+|----------|-------------------|
+| `DB_HOST` | `${{MySQL.MYSQLHOST}}` |
+| `DB_PORT` | `${{MySQL.MYSQLPORT}}` |
+| `DB_USER` | `${{MySQL.MYSQLUSER}}` |
+| `DB_PASSWORD` | `${{MySQL.MYSQLPASSWORD}}` |
+| `DB_NAME` | `${{MySQL.MYSQLDATABASE}}` |
+
+> If you only add the MySQL plugin and link it to the API service, Railway injects `MYSQLHOST`, `MYSQLPORT`, etc. The backend now maps those automatically — but you **must still set `JWT_SECRET` and `NODE_ENV=production`**.
+
+`PORT` is set by Railway automatically — do not hardcode it.
 
 ## 4. First deploy — seed admin user
 
@@ -81,11 +96,14 @@ flutter run --dart-define=API_BASE_URL=https://YOUR-RAILWAY-URL.up.railway.app
 
 ## Troubleshooting
 
-| Build error | Fix |
-|-------------|-----|
+| Error | Fix |
+|-------|-----|
 | `Railpack could not determine how to build` | Push root `package.json` + `railway.toml`, or set Root Directory to `clothing-store/backend` |
-| `JWT_SECRET` validation failed | Use 32+ random characters in production |
-| DB connection refused | Check MySQL variables are referenced on the API service |
+| Healthcheck `/health` fails | Open **Deploy logs** (not build). Usually: missing MySQL, missing `JWT_SECRET`, or weak JWT with `NODE_ENV=production` |
+| `JWT_SECRET` validation failed | Use 32+ random chars: `openssl rand -base64 48` |
+| `[migrate] failed ECONNREFUSED` | Add MySQL and reference its vars on the API service |
+| DB connection refused | Check `DB_*` / `MYSQL*` variables on the API service |
 | 401 on login | Run `railway run npm run db:seed` once |
+| `Cannot find module … dist/index.js` | Fixed — start now uses `tsx src/index.ts` (do not run bare `node dist/…` without `.js` ESM paths) |
 
 Migrations run automatically on each deploy (`npm start` → migrate → server).

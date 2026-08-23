@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { applyPlatformEnvDefaults } from './platform-env';
 
 const WEAK_JWT_MARKERS = [
   'replace-this-with-a-long-random-string',
@@ -47,6 +48,7 @@ let cached: Env | null = null;
 
 export function loadEnv(): Env {
   if (cached) return cached;
+  applyPlatformEnvDefaults();
   cached = envSchema.parse(process.env);
   warnIfWeakJwtSecret(cached);
   return cached;

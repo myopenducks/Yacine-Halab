@@ -30,7 +30,7 @@ export async function createApp() {
   const env = loadEnv();
 
   const app = fastify({
-    logger: env.NODE_ENV !== 'production' ? { level: 'info' } : false,
+    logger: env.NODE_ENV === 'production' ? { level: 'error' } : { level: 'info' },
     disableRequestLogging: env.NODE_ENV === 'production',
   });
 
