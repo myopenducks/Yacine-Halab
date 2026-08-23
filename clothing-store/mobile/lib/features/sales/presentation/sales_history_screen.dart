@@ -163,7 +163,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
         await ref.read(saleServiceProvider).recordPayment(
               sale.id,
               sale.remainingAmount,
-              note: 'خلاص كامل (Marked as finished)',
+              note: 'Full settlement',
             );
         ref.invalidate(saleByIdProvider(sale.id));
         ref.read(salesListProvider.notifier).refresh();

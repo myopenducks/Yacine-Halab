@@ -39,16 +39,24 @@ class AppStrings {
   String get cartItems => isFrench ? 'Articles du panier' : 'Cart items';
   String get confirmSale => isFrench ? 'Confirmer la vente' : 'Confirm Sale';
   String get customerName => isFrench ? 'Nom du client' : 'Customer Name';
-  String get notes => isFrench ? 'Notes / Remarques' : 'Notes';
+  String get notes => isFrench ? 'Notes' : 'Notes';
   String get amountPaid => isFrench ? 'Montant payé (DA)' : 'Amount Paid (DA)';
   String get outstandingDebt => isFrench ? 'Dette restante' : 'Outstanding Debt';
   String get paid => isFrench ? 'Payé' : 'Paid';
   String get due => isFrench ? 'Restant' : 'Due';
+  String get remaining => isFrench ? 'Reste à payer' : 'Remaining';
+  String get debtStatus => isFrench ? 'Dette en cours' : 'Unpaid Debt';
+  String get paymentComplete => isFrench ? 'Paiement complet' : 'Fully Paid';
   String get recordPayment => isFrench ? 'Enregistrer paiement' : 'Record Payment';
+  String get payFull => isFrench ? 'Régler tout' : 'Pay Full';
   String get markFullyPaid => isFrench ? 'Marquer comme payé' : 'Mark as Fully Paid';
   String get availableProducts => isFrench ? 'Produits disponibles' : 'Available Products';
   String get inStock => isFrench ? 'En stock' : 'In stock';
   String get outOfStock => isFrench ? 'Rupture de stock' : 'Out of stock';
+  String get saveChanges => isFrench ? 'Enregistrer' : 'Save Changes';
+  String get cancel => isFrench ? 'Annuler' : 'Cancel';
+  String get items => isFrench ? 'Articles' : 'Items';
+  String get editCustomerNotes => isFrench ? 'Modifier client et notes' : 'Edit Customer & Notes';
 
   // ── Profile & Settings ──────────────────────────────────────────
   String get store => isFrench ? 'Boutique' : 'Store';

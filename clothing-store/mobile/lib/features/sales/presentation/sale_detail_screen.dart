@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/l10n/app_strings.dart';
 import '../../../core/utils/date.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -21,6 +22,7 @@ class SaleDetailScreen extends ConsumerWidget {
     WidgetRef ref,
     SaleDetail sale,
   ) async {
+    final strings = ref.read(appStringsProvider);
     final nameCtrl = TextEditingController(text: sale.customerName ?? '');
     final notesCtrl = TextEditingController(text: sale.notes ?? '');
 
@@ -28,13 +30,17 @@ class SaleDetailScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.edit_note_rounded, size: 24),
-              SizedBox(width: 8),
+              const Icon(Icons.edit_note_rounded, size: 24),
+              const SizedBox(width: 8),
               Text(
-                'Edit Customer & Notes',
-                style: TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.w700, fontSize: 18),
+                strings.editCustomerNotes,
+                style: const TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                ),
               ),
             ],
           ),
@@ -44,20 +50,20 @@ class SaleDetailScreen extends ConsumerWidget {
               children: [
                 TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Customer Name (اسم الزبون)',
+                  decoration: InputDecoration(
+                    labelText: strings.customerName,
                     hintText: 'e.g. Yacine',
-                    prefixIcon: Icon(Icons.person_outline),
+                    prefixIcon: const Icon(Icons.person_outline),
                   ),
                 ),
                 const SizedBox(height: 14),
                 TextField(
                   controller: notesCtrl,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Notes (ملاحظة)',
-                    hintText: 'e.g. خلصني 1000 وتبقا 6520',
-                    prefixIcon: Icon(Icons.note_outlined),
+                  decoration: InputDecoration(
+                    labelText: strings.notes,
+                    hintText: 'e.g. Paid 1000 DA, remaining 6520 DA',
+                    prefixIcon: const Icon(Icons.note_outlined),
                   ),
                 ),
               ],
@@ -66,11 +72,11 @@ class SaleDetailScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
+              child: Text(strings.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Save Changes'),
+              child: Text(strings.saveChanges),
             ),
           ],
         );
@@ -104,7 +110,7 @@ class SaleDetailScreen extends ConsumerWidget {
         return AlertDialog(
           title: Text('Settle Entire Debt for Sale #${sale.id}?'),
           content: Text(
-            'Remaining due is ${formatDAAmount(sale.remainingAmount)}.\nDo you want to mark this sale as fully paid (خلاص كامل)?',
+            'Remaining due is ${formatDAAmount(sale.remainingAmount)}.\nMark this sale as fully paid?',
           ),
           actions: [
             TextButton(
@@ -126,7 +132,7 @@ class SaleDetailScreen extends ConsumerWidget {
         await ref.read(saleServiceProvider).recordPayment(
               sale.id,
               sale.remainingAmount,
-              note: 'خلاص كامل (Full settlement)',
+              note: 'Full settlement',
             );
         ref.invalidate(saleByIdProvider(sale.id));
         ref.read(salesListProvider.notifier).refresh();
@@ -159,11 +165,12 @@ class SaleDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
+    final strings = ref.watch(appStringsProvider);
     final async = ref.watch(saleByIdProvider(saleId));
     final dateFmt = appDateTimeFormat;
 
     return Scaffold(
-      backgroundColor: isLight ? AppColors.gray050 : AppColors.black,
+      backgroundColor: isLight ? AppColors.surfaceLight : AppColors.dark,
       appBar: AppBar(
         title: Text('Sale #$saleId'),
         leading: IconButton(
@@ -217,10 +224,10 @@ class SaleDetailScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: isLight ? AppColors.white : AppColors.gray900,
+                  color: isLight ? AppColors.white : AppColors.cardDark,
                   borderRadius: BorderRadius.circular(22),
                   border: Border.all(
-                    color: isLight ? AppColors.gray200 : AppColors.gray800,
+                    color: isLight ? AppColors.border : AppColors.borderDark,
                     width: 1.2,
                   ),
                   boxShadow: [
@@ -243,17 +250,18 @@ class SaleDetailScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 formatDAAmount(sale.totalAmount),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontWeight: FontWeight.w800,
                                   fontSize: 28,
+                                  color: isLight ? AppColors.dark : AppColors.onDark,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 dateFmt.format(sale.createdAt.toLocal()),
                                 style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: isLight ? AppColors.gray500 : AppColors.gray400,
+                                  color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
                                 ),
                               ),
                             ],
@@ -263,7 +271,7 @@ class SaleDetailScreen extends ConsumerWidget {
                         IconButton(
                           icon: const Icon(Icons.edit_note_rounded, size: 28),
                           tooltip: 'Edit name / notes',
-                          color: isLight ? AppColors.secondary : AppColors.accent,
+                          color: AppColors.primary,
                           onPressed: () => _openEditDialog(context, ref, sale),
                         ),
                       ],
@@ -273,16 +281,20 @@ class SaleDetailScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: isLight ? AppColors.gray100 : AppColors.gray800,
+                          color: isLight ? AppColors.inputFill : AppColors.inputFillDark,
                           borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isLight ? AppColors.border : AppColors.borderDark,
+                            width: 0.6,
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.person,
                               size: 16,
-                              color: isLight ? AppColors.secondary : AppColors.accent,
+                              color: AppColors.primary,
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -291,7 +303,7 @@ class SaleDetailScreen extends ConsumerWidget {
                                 fontFamily: AppTheme.fontFamily,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 14,
-                                color: isLight ? AppColors.gray900 : AppColors.onDark,
+                                color: isLight ? AppColors.dark : AppColors.onDark,
                               ),
                             ),
                           ],
@@ -304,17 +316,17 @@ class SaleDetailScreen extends ConsumerWidget {
                       runSpacing: 6,
                       children: [
                         _MetaChip(
-                          label: '${sale.itemCount} items',
+                          label: '${sale.itemCount} ${strings.items}',
                           isLight: isLight,
                         ),
                         _MetaChip(
-                          label: 'Paid ${formatDAAmount(sale.paidAmount)}',
+                          label: '${strings.paid} ${formatDAAmount(sale.paidAmount)}',
                           isLight: isLight,
                           color: AppColors.success,
                         ),
                         if (sale.hasDebt)
                           _MetaChip(
-                            label: 'Due ${formatDAAmount(sale.remainingAmount)}',
+                            label: '${strings.due} ${formatDAAmount(sale.remainingAmount)}',
                             isLight: isLight,
                             warn: true,
                           ),
@@ -324,11 +336,11 @@ class SaleDetailScreen extends ConsumerWidget {
                 ),
               ),
 
-              // ── Beautiful Debt & Payment Breakdown Card (الوضعية المالية) ────────
+              // ── Debt & Payment Breakdown Card ────────
               const SizedBox(height: 16),
               Container(
                 decoration: BoxDecoration(
-                  color: isLight ? AppColors.white : AppColors.gray900,
+                  color: isLight ? AppColors.white : AppColors.cardDark,
                   borderRadius: BorderRadius.circular(22),
                   border: Border.all(
                     color: sale.hasDebt
@@ -367,9 +379,7 @@ class SaleDetailScreen extends ConsumerWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            sale.hasDebt
-                                ? 'Debt / الكريدي'
-                                : 'Payment Complete / خلاص كامل',
+                            sale.hasDebt ? strings.debtStatus : strings.paymentComplete,
                             style: TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 14,
@@ -386,7 +396,7 @@ class SaleDetailScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              '${(pctPaid * 100).toInt()}% Paid',
+                              '${(pctPaid * 100).toInt()}% ${strings.paid}',
                               style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
                                 fontSize: 12,
@@ -411,9 +421,9 @@ class SaleDetailScreen extends ConsumerWidget {
                             child: LinearProgressIndicator(
                               value: pctPaid,
                               minHeight: 8,
-                              backgroundColor: isLight ? AppColors.gray100 : AppColors.gray800,
+                              backgroundColor: isLight ? AppColors.inputFill : AppColors.inputFillDark,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                sale.hasDebt ? AppColors.terracotta : AppColors.success,
+                                sale.hasDebt ? AppColors.primary : AppColors.success,
                               ),
                             ),
                           ),
@@ -426,18 +436,22 @@ class SaleDetailScreen extends ConsumerWidget {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                   decoration: BoxDecoration(
-                                    color: isLight ? AppColors.gray100 : AppColors.gray800,
+                                    color: isLight ? AppColors.inputFill : AppColors.inputFillDark,
                                     borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: isLight ? AppColors.border : AppColors.borderDark,
+                                      width: 0.6,
+                                    ),
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Paid (المدفوع)',
+                                        strings.paid,
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w500,
-                                          color: isLight ? AppColors.gray500 : AppColors.gray400,
+                                          color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
@@ -461,20 +475,26 @@ class SaleDetailScreen extends ConsumerWidget {
                                   decoration: BoxDecoration(
                                     color: sale.hasDebt
                                         ? (isLight ? const Color(0xFFFFECEC) : const Color(0xFF381C1C))
-                                        : (isLight ? AppColors.gray100 : AppColors.gray800),
+                                        : (isLight ? AppColors.inputFill : AppColors.inputFillDark),
                                     borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: sale.hasDebt
+                                          ? AppColors.debtRed.withValues(alpha: 0.4)
+                                          : (isLight ? AppColors.border : AppColors.borderDark),
+                                      width: 0.6,
+                                    ),
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Remaining (المتبقي)',
+                                        strings.remaining,
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w500,
                                           color: sale.hasDebt
                                               ? AppColors.debtRed
-                                              : (isLight ? AppColors.gray500 : AppColors.gray400),
+                                              : (isLight ? AppColors.textMuted : AppColors.textMutedDark),
                                         ),
                                       ),
                                       const SizedBox(height: 4),
@@ -486,7 +506,7 @@ class SaleDetailScreen extends ConsumerWidget {
                                           fontWeight: FontWeight.w800,
                                           color: sale.hasDebt
                                               ? AppColors.debtRed
-                                              : (isLight ? AppColors.gray900 : AppColors.onDark),
+                                              : (isLight ? AppColors.dark : AppColors.onDark),
                                         ),
                                       ),
                                     ],
@@ -500,7 +520,7 @@ class SaleDetailScreen extends ConsumerWidget {
                             const SizedBox(height: 16),
                             Row(
                               children: [
-                                // Record Payment / تسديد دفعة
+                                // Record Payment
                                 Expanded(
                                   flex: 3,
                                   child: SizedBox(
@@ -514,9 +534,9 @@ class SaleDetailScreen extends ConsumerWidget {
                                         ),
                                       ),
                                       icon: const Icon(Icons.payments_outlined, size: 18),
-                                      label: const Text(
-                                        'Record Payment / تسديد',
-                                        style: TextStyle(
+                                      label: Text(
+                                        strings.recordPayment,
+                                        style: const TextStyle(
                                           fontFamily: AppTheme.fontFamily,
                                           fontWeight: FontWeight.w700,
                                           fontSize: 13,
@@ -527,7 +547,7 @@ class SaleDetailScreen extends ConsumerWidget {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                // Quick Pay Full / خلاص كامل
+                                // Pay Full
                                 Expanded(
                                   flex: 2,
                                   child: SizedBox(
@@ -540,9 +560,9 @@ class SaleDetailScreen extends ConsumerWidget {
                                         ),
                                       ),
                                       onPressed: () => _quickMarkPaid(context, ref, sale),
-                                      child: const Text(
-                                        'Pay Full',
-                                        style: TextStyle(
+                                      child: Text(
+                                        strings.payFull,
+                                        style: const TextStyle(
                                           fontFamily: AppTheme.fontFamily,
                                           fontWeight: FontWeight.w700,
                                           fontSize: 13,
@@ -562,7 +582,7 @@ class SaleDetailScreen extends ConsumerWidget {
                 ),
               ),
 
-              // ── Notes Card (الملاحظات) ───────────────────────────────
+              // ── Notes Card ───────────────────────────────
               if (sale.notes != null && sale.notes!.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Material(
@@ -574,10 +594,10 @@ class SaleDetailScreen extends ConsumerWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: isLight ? AppColors.white : AppColors.gray900,
+                        color: isLight ? AppColors.white : AppColors.cardDark,
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: isLight ? AppColors.gray200 : AppColors.gray800,
+                          color: isLight ? AppColors.border : AppColors.borderDark,
                         ),
                       ),
                       child: Column(
@@ -585,26 +605,26 @@ class SaleDetailScreen extends ConsumerWidget {
                         children: [
                           Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.note_alt_outlined,
                                 size: 18,
-                                color: isLight ? AppColors.secondary : AppColors.accent,
+                                color: AppColors.primary,
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Notes / ملاحظات (Tap to edit)',
+                                strings.notes,
                                 style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13,
-                                  color: isLight ? AppColors.gray700 : AppColors.gray300,
+                                  color: isLight ? AppColors.dark : AppColors.onDark,
                                 ),
                               ),
                               const Spacer(),
                               Icon(
                                 Icons.edit_outlined,
                                 size: 16,
-                                color: isLight ? AppColors.gray500 : AppColors.gray400,
+                                color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
                               ),
                             ],
                           ),
@@ -615,7 +635,7 @@ class SaleDetailScreen extends ConsumerWidget {
                               fontFamily: AppTheme.fontFamily,
                               fontSize: 14,
                               height: 1.4,
-                              color: isLight ? AppColors.gray900 : AppColors.onDark,
+                              color: isLight ? AppColors.dark : AppColors.onDark,
                             ),
                           ),
                         ],
@@ -627,7 +647,7 @@ class SaleDetailScreen extends ConsumerWidget {
 
               const SizedBox(height: 24),
               Text(
-                'Items (${sale.items.length})',
+                '${strings.items} (${sale.items.length})',
                 style: theme.textTheme.headlineSmall?.copyWith(fontSize: 18),
               ),
               const SizedBox(height: 12),
@@ -637,10 +657,10 @@ class SaleDetailScreen extends ConsumerWidget {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: isLight ? AppColors.white : AppColors.gray900,
+                      color: isLight ? AppColors.white : AppColors.cardDark,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: isLight ? AppColors.gray200 : AppColors.gray800,
+                        color: isLight ? AppColors.border : AppColors.borderDark,
                         width: 1.2,
                       ),
                     ),
@@ -652,13 +672,15 @@ class SaleDetailScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 item.productName,
-                                style: theme.textTheme.titleMedium,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: isLight ? AppColors.dark : AppColors.onDark,
+                                ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 '${item.quantity} × ${formatDAAmount(item.unitPrice)}',
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: isLight ? AppColors.gray500 : AppColors.gray400,
+                                  color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
                                 ),
                               ),
                             ],
@@ -666,10 +688,11 @@ class SaleDetailScreen extends ConsumerWidget {
                         ),
                         Text(
                           formatDAAmount(item.lineTotal),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: AppTheme.fontFamily,
                             fontWeight: FontWeight.w700,
                             fontSize: 15,
+                            color: isLight ? AppColors.dark : AppColors.onDark,
                           ),
                         ),
                       ],
@@ -682,7 +705,7 @@ class SaleDetailScreen extends ConsumerWidget {
                 height: 54,
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.add_shopping_cart_rounded),
-                  label: const Text('New sale'),
+                  label: Text(strings.newSale),
                   onPressed: () => context.go('/cart'),
                 ),
               ),
@@ -694,7 +717,7 @@ class SaleDetailScreen extends ConsumerWidget {
   }
 }
 
-// ── Payment Bottom Sheet (تسجيل الدفعات) ──────────────────────────────────────
+// ── Payment Bottom Sheet ──────────────────────────────────────
 
 class _RecordPaymentSheet extends StatefulWidget {
   const _RecordPaymentSheet({
@@ -768,11 +791,12 @@ class _RecordPaymentSheetState extends State<_RecordPaymentSheet> {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
+    final strings = widget.parentRef.watch(appStringsProvider);
     final remaining = widget.sale.remainingAmount;
 
     return Container(
       decoration: BoxDecoration(
-        color: isLight ? AppColors.white : AppColors.gray900,
+        color: isLight ? AppColors.white : AppColors.cardDark,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.only(
@@ -790,7 +814,7 @@ class _RecordPaymentSheetState extends State<_RecordPaymentSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: isLight ? AppColors.gray300 : AppColors.gray700,
+                color: isLight ? AppColors.border : AppColors.borderDark,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -799,9 +823,9 @@ class _RecordPaymentSheetState extends State<_RecordPaymentSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Record Payment / تسديد دفعة',
-                style: TextStyle(
+              Text(
+                strings.recordPayment,
+                style: const TextStyle(
                   fontFamily: AppTheme.fontFamily,
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
@@ -814,7 +838,7 @@ class _RecordPaymentSheetState extends State<_RecordPaymentSheet> {
                   borderRadius: BorderRadius.circular(99),
                 ),
                 child: Text(
-                  'Due ${formatDAAmount(remaining)}',
+                  '${strings.due} ${formatDAAmount(remaining)}',
                   style: const TextStyle(
                     fontFamily: AppTheme.fontFamily,
                     fontSize: 12,
@@ -848,9 +872,9 @@ class _RecordPaymentSheetState extends State<_RecordPaymentSheet> {
                 ),
               ActionChip(
                 backgroundColor: AppColors.success.withValues(alpha: 0.15),
-                label: const Text(
-                  'Pay Full Debt',
-                  style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w700),
+                label: Text(
+                  strings.payFull,
+                  style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.w700),
                 ),
                 onPressed: () => _setPreset(remaining),
               ),
@@ -870,7 +894,7 @@ class _RecordPaymentSheetState extends State<_RecordPaymentSheet> {
               fontWeight: FontWeight.w700,
             ),
             decoration: InputDecoration(
-              labelText: 'Payment Amount (DA)',
+              labelText: strings.amountPaid,
               hintText: 'e.g. 1000',
               prefixIcon: const Icon(Icons.payments_outlined),
               suffixText: 'DA',
@@ -885,8 +909,8 @@ class _RecordPaymentSheetState extends State<_RecordPaymentSheet> {
           TextField(
             controller: _noteCtrl,
             decoration: InputDecoration(
-              labelText: 'Note (Optional)',
-              hintText: 'e.g. دفعة ثانية عبر اليد',
+              labelText: '${strings.notes} (Optional)',
+              hintText: 'e.g. Second installment',
               prefixIcon: const Icon(Icons.description_outlined),
               filled: true,
               fillColor: isLight ? AppColors.inputFill : AppColors.inputFillDark,
@@ -912,9 +936,9 @@ class _RecordPaymentSheetState extends State<_RecordPaymentSheet> {
                       height: 22,
                       child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
                     )
-                  : const Text(
-                      'Confirm Payment / تأكيد الدفع',
-                      style: TextStyle(
+                  : Text(
+                      strings.recordPayment,
+                      style: const TextStyle(
                         fontFamily: AppTheme.fontFamily,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -943,7 +967,7 @@ class _MetaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chipColor = color ?? (warn ? AppColors.debtRed : AppColors.secondary);
+    final chipColor = color ?? (warn ? AppColors.debtRed : AppColors.primary);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(

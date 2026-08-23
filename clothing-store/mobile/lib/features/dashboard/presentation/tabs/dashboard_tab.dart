@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/providers/settings_provider.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -13,7 +14,6 @@ import '../../../auth/auth_provider.dart';
 import '../../models/dashboard.dart';
 import '../../providers/dashboard_provider.dart';
 import '../widgets/kpi_card.dart';
-import '../widgets/sales_bar_chart.dart';
 
 class DashboardHomeTab extends ConsumerWidget {
   const DashboardHomeTab({super.key});
@@ -22,13 +22,13 @@ class DashboardHomeTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
+    final strings = ref.watch(appStringsProvider);
     final auth = ref.watch(authNotifierProvider);
     final displayName = ref.watch(displayNameProvider);
     final avatarPath = ref.watch(avatarPathProvider);
     final name = displayName ?? auth.user?.username ?? 'Shop';
     final filter = ref.watch(dashboardFilterProvider);
     final summaryAsync = ref.watch(dashboardSummaryProvider);
-    final chartAsync = ref.watch(dashboardChartProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -49,7 +49,7 @@ class DashboardHomeTab extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Hello, Welcome 👋',
+                    strings.helloWelcome,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: isLight ? AppColors.gray500 : AppColors.gray400,
                     ),
@@ -89,7 +89,12 @@ class DashboardHomeTab extends ConsumerWidget {
               onPickMonth: () => _pickMonth(context, ref, filter),
             ),
             const SizedBox(height: 22),
-            Text(filter.overviewTitle, style: theme.textTheme.headlineSmall),
+            Text(
+              filter.period == DashboardPeriod.today
+                  ? strings.todayOverview
+                  : filter.overviewTitle,
+              style: theme.textTheme.headlineSmall,
+            ),
             const SizedBox(height: 14),
             summaryAsync.when(
               loading: () => const _KpiSkeleton(),
@@ -100,19 +105,7 @@ class DashboardHomeTab extends ConsumerWidget {
               data: (s) => _KpiGrid(summary: s),
             ),
             const SizedBox(height: 22),
-            chartAsync.when(
-              loading: () => const SizedBox(
-                height: 200,
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (_, __) => const SizedBox.shrink(),
-              data: (chart) => SalesBarChart(
-                buckets: chart.buckets,
-                period: filter.period,
-              ),
-            ),
-            const SizedBox(height: 22),
-            Text('Stock by category', style: theme.textTheme.headlineSmall),
+            Text(strings.stockByCategory, style: theme.textTheme.headlineSmall),
             const SizedBox(height: 12),
             summaryAsync.when(
               loading: () => const _CategorySkeleton(),
@@ -120,7 +113,7 @@ class DashboardHomeTab extends ConsumerWidget {
               data: (s) => _CategoryStockList(items: s.categoryQuantities),
             ),
             const SizedBox(height: 26),
-            Text('Quick actions', style: theme.textTheme.headlineSmall),
+            Text(strings.quickActions, style: theme.textTheme.headlineSmall),
             const SizedBox(height: 14),
             const _QuickActions(),
           ],

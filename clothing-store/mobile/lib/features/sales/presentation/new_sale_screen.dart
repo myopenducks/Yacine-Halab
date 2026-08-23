@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/l10n/app_strings.dart';
 import '../../../core/routes/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
@@ -59,7 +60,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
     try {
       final page = await ref.read(productServiceProvider).list(
             page: 1,
-            limit: 30,
+            limit: 40,
             search: search,
             categoryId: categoryId,
           );
@@ -120,11 +121,10 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
     showAppSnackBar(
       context,
       sale.hasDebt
-          ? 'Sale #${sale.id} – debt: ${formatDAAmount(sale.remainingAmount)}'
+          ? 'Sale #${sale.id} – remaining: ${formatDAAmount(sale.remainingAmount)}'
           : 'Sale #${sale.id} confirmed',
       kind: sale.hasDebt ? AppSnackKind.warning : AppSnackKind.success,
     );
-    // Reset local field controllers
     setState(() => _showDetails = false);
     _customerCtrl.clear();
     _notesCtrl.clear();
@@ -151,6 +151,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
+    final strings = ref.watch(appStringsProvider);
     final cart = ref.watch(newSaleProvider);
     final notifier = ref.read(newSaleProvider.notifier);
     final categoriesAsync = ref.watch(categoriesProvider);
@@ -162,7 +163,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Text('New sale', style: theme.textTheme.headlineSmall),
+        title: Text(strings.newSale, style: theme.textTheme.headlineSmall),
         actions: [
           if (!cart.isEmpty)
             TextButton.icon(
@@ -191,7 +192,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
               controller: _searchCtrl,
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
-                hintText: 'Search products by name…',
+                hintText: strings.searchProducts,
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchCtrl.text.isEmpty
                     ? null
@@ -202,23 +203,23 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                         },
                         icon: const Icon(Icons.close, size: 18),
                       ),
-                fillColor: isLight ? AppColors.white : AppColors.gray900,
+                fillColor: isLight ? AppColors.white : AppColors.cardDark,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide(
-                    color: isLight ? AppColors.gray200 : AppColors.gray800,
+                    color: isLight ? AppColors.border : AppColors.borderDark,
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide(
-                    color: isLight ? AppColors.gray200 : AppColors.gray800,
+                    color: isLight ? AppColors.border : AppColors.borderDark,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: isLight ? AppColors.primary : AppColors.accent,
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
                     width: 1.5,
                   ),
                 ),
@@ -237,7 +238,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   children: [
                     ChoiceChip(
-                      label: const Text('All'),
+                      label: Text(strings.all),
                       selected: _selectedCategoryId == null,
                       onSelected: (_) => _onCategorySelected(null),
                     ),
@@ -273,7 +274,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Cart Items (${cart.distinctCount})',
+                        '${strings.cartItems} (${cart.distinctCount})',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
@@ -284,7 +285,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                           fontFamily: AppTheme.fontFamily,
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
-                          color: isLight ? AppColors.gray600 : AppColors.gray400,
+                          color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
                         ),
                       ),
                     ],
@@ -311,10 +312,10 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        color: isLight ? AppColors.white : AppColors.gray900,
+                        color: isLight ? AppColors.white : AppColors.cardDark,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: isLight ? AppColors.gray200 : AppColors.gray800,
+                          color: isLight ? AppColors.border : AppColors.borderDark,
                         ),
                       ),
                       child: Row(
@@ -328,8 +329,8 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                           Expanded(
                             child: Text(
                               cart.customerName != null
-                                  ? 'Customer: ${cart.customerName}'
-                                  : 'Add Customer & Payment Details',
+                                  ? '${strings.customerName}: ${cart.customerName}'
+                                  : '${strings.customerName} & ${strings.notes}',
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 fontWeight: cart.customerName != null
                                     ? FontWeight.w700
@@ -345,7 +346,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                                 borderRadius: BorderRadius.circular(99),
                               ),
                               child: Text(
-                                'Debt ${formatDAAmount(debtAmount)}',
+                                '${strings.due} ${formatDAAmount(debtAmount)}',
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -356,7 +357,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                           const SizedBox(width: 6),
                           Icon(
                             _showDetails ? Icons.expand_less : Icons.expand_more,
-                            color: isLight ? AppColors.gray500 : AppColors.gray400,
+                            color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
                           ),
                         ],
                       ),
@@ -367,7 +368,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                     const SizedBox(height: 10),
                     _DetailField(
                       controller: _customerCtrl,
-                      hint: 'Customer Name (اسم الزبون)',
+                      hint: strings.customerName,
                       icon: Icons.person_outline,
                       isLight: isLight,
                       onChanged: _onCustomerChanged,
@@ -375,7 +376,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                     const SizedBox(height: 8),
                     _DetailField(
                       controller: _notesCtrl,
-                      hint: 'Note (ملاحظة)',
+                      hint: strings.notes,
                       icon: Icons.note_outlined,
                       isLight: isLight,
                       maxLines: 2,
@@ -384,7 +385,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                     const SizedBox(height: 8),
                     _DetailField(
                       controller: _paidCtrl,
-                      hint: 'Amount Paid in DA (المبلغ المدفوع)',
+                      hint: strings.amountPaid,
                       icon: Icons.payments_outlined,
                       isLight: isLight,
                       keyboardType: TextInputType.number,
@@ -409,7 +410,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                             const Icon(Icons.warning_amber_rounded, size: 18, color: AppColors.debtRed),
                             const SizedBox(width: 8),
                             Text(
-                              'Outstanding Debt: ${formatDAAmount(debtAmount)}',
+                              '${strings.outstandingDebt}: ${formatDAAmount(debtAmount)}',
                               style: const TextStyle(
                                 color: AppColors.debtRed,
                                 fontWeight: FontWeight.w700,
@@ -433,8 +434,8 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                   children: [
                     Text(
                       _searchCtrl.text.isNotEmpty
-                          ? 'Search Results (${_products.length})'
-                          : 'Available Products (المنتجات)',
+                          ? '${strings.searchProducts} (${_products.length})'
+                          : '${strings.availableProducts} (${_products.length})',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                         fontSize: 16,
@@ -473,10 +474,10 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: isLight ? AppColors.white : AppColors.gray900,
+                      color: isLight ? AppColors.white : AppColors.cardDark,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: isLight ? AppColors.gray200 : AppColors.gray800,
+                        color: isLight ? AppColors.border : AppColors.borderDark,
                       ),
                     ),
                     child: Column(
@@ -511,20 +512,20 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: isLight ? AppColors.white : AppColors.gray900,
+                        color: isLight ? AppColors.white : AppColors.cardDark,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: inCartQty > 0
                               ? AppColors.primary
-                              : (isLight ? AppColors.gray200 : AppColors.gray800),
+                              : (isLight ? AppColors.border : AppColors.borderDark),
                           width: inCartQty > 0 ? 1.6 : 1.2,
                         ),
                         boxShadow: [
                           if (inCartQty > 0)
                             BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.08),
+                              color: AppColors.primary.withValues(alpha: 0.12),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -534,10 +535,10 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                         children: [
                           // Product Thumbnail / Category Icon
                           Container(
-                            width: 48,
-                            height: 48,
+                            width: 50,
+                            height: 50,
                             decoration: BoxDecoration(
-                              color: isLight ? AppColors.gray100 : AppColors.gray800,
+                              color: isLight ? AppColors.inputFill : AppColors.inputFillDark,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: product.imageUrl != null && product.imageUrl!.isNotEmpty
@@ -548,16 +549,16 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, __, ___) => Icon(
                                         Icons.checkroom_rounded,
-                                        color: isLight ? AppColors.secondary : AppColors.accent,
+                                        color: isLight ? AppColors.secondary : AppColors.onDark,
                                       ),
                                     ),
                                   )
                                 : Icon(
                                     Icons.checkroom_rounded,
-                                    color: isLight ? AppColors.secondary : AppColors.accent,
+                                    color: isLight ? AppColors.secondary : AppColors.onDark,
                                   ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 14),
 
                           // Details
                           Expanded(
@@ -573,37 +574,41 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                                     fontWeight: FontWeight.w700,
                                     fontSize: 15,
                                     color: isOutOfStock
-                                        ? (isLight ? AppColors.gray400 : AppColors.gray600)
-                                        : (isLight ? AppColors.gray900 : AppColors.onDark),
+                                        ? AppColors.textMuted
+                                        : (isLight ? AppColors.dark : AppColors.onDark),
                                   ),
                                 ),
-                                const SizedBox(height: 2),
+                                const SizedBox(height: 4),
                                 Row(
                                   children: [
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: isLight ? AppColors.gray100 : AppColors.gray800,
+                                        color: isLight ? AppColors.inputFill : AppColors.inputFillDark,
                                         borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: isLight ? AppColors.border : AppColors.borderDark,
+                                          width: 0.6,
+                                        ),
                                       ),
                                       child: Text(
                                         product.categoryName,
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
-                                          color: isLight ? AppColors.gray600 : AppColors.gray400,
+                                          color: isLight ? AppColors.secondary : AppColors.onDark,
                                         ),
                                       ),
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      isOutOfStock ? 'Out of stock' : 'Stock: ${product.quantity}',
+                                      isOutOfStock ? strings.outOfStock : '${strings.inStock}: ${product.quantity}',
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
                                         color: isOutOfStock
                                             ? AppColors.danger
-                                            : (isLight ? AppColors.gray500 : AppColors.gray400),
+                                            : (isLight ? AppColors.textMuted : AppColors.textMutedDark),
                                       ),
                                     ),
                                   ],
@@ -612,53 +617,57 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                             ),
                           ),
 
+                          const SizedBox(width: 10),
+
                           // Price & Quick Add Button
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
                                 formatDAAmount(product.sellingPrice),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontWeight: FontWeight.w800,
                                   fontSize: 15,
+                                  color: isLight ? AppColors.dark : AppColors.onDark,
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 6),
                               if (inCartQty > 0)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: AppColors.primary,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    'x$inCartQty in cart',
+                                    'x$inCartQty',
                                     style: const TextStyle(
                                       fontFamily: AppTheme.fontFamily,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
                                       color: Colors.white,
                                     ),
                                   ),
                                 )
                               else
                                 SizedBox(
-                                  height: 32,
+                                  height: 34,
                                   child: FilledButton.icon(
                                     style: FilledButton.styleFrom(
                                       backgroundColor: isOutOfStock
                                           ? AppColors.gray300
                                           : AppColors.primary,
+                                      foregroundColor: Colors.white,
                                       padding: const EdgeInsets.symmetric(horizontal: 10),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                     ),
                                     icon: const Icon(Icons.add, size: 16),
-                                    label: const Text(
-                                      'Add',
-                                      style: TextStyle(
+                                    label: Text(
+                                      isFrench ? 'Ajouter' : 'Add',
+                                      style: const TextStyle(
                                         fontFamily: AppTheme.fontFamily,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700,
@@ -686,7 +695,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
               child: Container(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
                 decoration: BoxDecoration(
-                  color: isLight ? AppColors.white : AppColors.gray900,
+                  color: isLight ? AppColors.white : AppColors.cardDark,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.08),
@@ -696,7 +705,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                   ],
                   border: Border(
                     top: BorderSide(
-                      color: isLight ? AppColors.gray200 : AppColors.gray800,
+                      color: isLight ? AppColors.border : AppColors.borderDark,
                     ),
                   ),
                 ),
@@ -720,9 +729,9 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                     Row(
                       children: [
                         Text(
-                          '${cart.unitCount} item${cart.unitCount == 1 ? '' : 's'} in cart',
+                          '${cart.unitCount} item${cart.unitCount == 1 ? '' : 's'}',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: isLight ? AppColors.gray500 : AppColors.gray400,
+                            color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
                           ),
                         ),
                         const Spacer(),
@@ -731,15 +740,16 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                           children: [
                             Text(
                               formatDAAmount(cart.totalAmount),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: AppTheme.fontFamily,
                                 fontWeight: FontWeight.w800,
                                 fontSize: 22,
+                                color: isLight ? AppColors.dark : AppColors.onDark,
                               ),
                             ),
                             if (cart.paidAmount != null && cart.paidAmount! < cart.totalAmount)
                               Text(
-                                'Paid ${formatDAAmount(cart.paidAmount!)} · Due ${formatDAAmount(debtAmount)}',
+                                '${strings.paid} ${formatDAAmount(cart.paidAmount!)} · ${strings.due} ${formatDAAmount(debtAmount)}',
                                 style: const TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontSize: 12,
@@ -768,8 +778,8 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                               )
                             : Text(
                                 cart.hasDebt
-                                    ? 'Confirm Sale (Partial Payment)'
-                                    : 'Confirm Sale (${formatDAAmount(cart.totalAmount)})',
+                                    ? '${strings.confirmSale} (${strings.outstandingDebt})'
+                                    : '${strings.confirmSale} (${formatDAAmount(cart.totalAmount)})',
                                 style: const TextStyle(
                                   fontFamily: AppTheme.fontFamily,
                                   fontWeight: FontWeight.w700,
@@ -818,7 +828,7 @@ class _DetailField extends StatelessWidget {
       style: TextStyle(
         fontFamily: AppTheme.fontFamily,
         fontSize: 14,
-        color: isLight ? AppColors.gray900 : AppColors.onDark,
+        color: isLight ? AppColors.dark : AppColors.onDark,
       ),
       decoration: InputDecoration(
         hintText: hint,
@@ -828,19 +838,19 @@ class _DetailField extends StatelessWidget {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: isLight ? AppColors.gray200 : AppColors.gray800,
+            color: isLight ? AppColors.border : AppColors.borderDark,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: isLight ? AppColors.border : AppColors.gray800,
+            color: isLight ? AppColors.border : AppColors.borderDark,
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isLight ? AppColors.skyBlue : AppColors.softBlue,
+          borderSide: const BorderSide(
+            color: AppColors.primary,
             width: 1.5,
           ),
         ),
