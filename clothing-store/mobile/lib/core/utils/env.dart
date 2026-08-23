@@ -3,7 +3,7 @@ class AppEnv {
 
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:3000',
+    defaultValue: 'https://yacine-halab-production.up.railway.app',
   );
 
   static const bool debugAllowBadCert = bool.fromEnvironment(
@@ -12,13 +12,6 @@ class AppEnv {
   );
 
   static String resolveApiBaseUrlForHost(String host) {
-    if (apiBaseUrl != 'http://10.0.2.2:3000') return apiBaseUrl;
-    if (host == 'windows' ||
-        host == 'web' ||
-        host == 'chrome' ||
-        host == 'edge') {
-      return 'http://127.0.0.1:3000';
-    }
     return apiBaseUrl;
   }
 }
