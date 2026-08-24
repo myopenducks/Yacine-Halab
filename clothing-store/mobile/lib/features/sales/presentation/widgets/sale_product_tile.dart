@@ -175,6 +175,7 @@ class SaleProductTile extends StatelessWidget {
                               ? AppColors.gray300
                               : AppColors.primary,
                           foregroundColor: AppColors.onPrimary,
+                          minimumSize: const Size(0, 36),
                           padding: const EdgeInsets.symmetric(horizontal: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
