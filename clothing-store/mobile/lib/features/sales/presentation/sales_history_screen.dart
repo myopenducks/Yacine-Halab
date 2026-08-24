@@ -8,6 +8,7 @@ import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/money.dart';
+import '../../../core/providers/app_refresh.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../models/sale.dart';
 import '../providers/sales_history_provider.dart';
@@ -240,12 +241,11 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
               note: 'Full settlement',
             );
         ref.invalidate(saleByIdProvider(sale.id));
-        ref.read(salesListProvider.notifier).refresh();
-        ref.invalidate(debtBadgeCountProvider);
+        refreshAfterInventoryChange(ref);
         if (mounted) {
           showAppSnackBar(
             context,
-            'Sale #${sale.id} marked as fully paid! 🎉',
+            'Sale #${sale.id} marked as fully paid!',
             kind: AppSnackKind.success,
           );
         }

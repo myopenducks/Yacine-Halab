@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/providers/shell_tab_provider.dart';
 import '../../../core/routes/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
@@ -15,6 +16,7 @@ import '../../products/models/product.dart';
 import '../../products/providers/products_provider.dart';
 import '../providers/new_sale_provider.dart';
 import 'widgets/cart_line_tile.dart';
+import 'widgets/sale_product_tile.dart';
 
 class NewSaleScreen extends ConsumerStatefulWidget {
   const NewSaleScreen({super.key});
@@ -35,12 +37,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
   String? _loadError;
   int? _selectedCategoryId;
   bool _showDetails = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSuggestions();
-  }
+  bool _saleTabLoaded = false;
 
   @override
   void dispose() {
@@ -52,7 +49,16 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
     super.dispose();
   }
 
+  void _reloadIfSaleTabActive() {
+    if (ref.read(activeShellTabIndexProvider) != ShellTabs.sale) return;
+    _loadSuggestions(
+      search: _searchCtrl.text.trim().isEmpty ? null : _searchCtrl.text.trim(),
+      categoryId: _selectedCategoryId,
+    );
+  }
+
   Future<void> _loadSuggestions({String? search, int? categoryId}) async {
+    if (!mounted) return;
     setState(() {
       _loadingProducts = true;
       _loadError = null;
@@ -68,6 +74,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
       setState(() {
         _products = page.items;
         _loadingProducts = false;
+        _saleTabLoaded = true;
       });
     } catch (e) {
       if (!mounted) return;
@@ -89,9 +96,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
   }
 
   void _onCategorySelected(int? categoryId) {
-    setState(() {
-      _selectedCategoryId = categoryId;
-    });
+    setState(() => _selectedCategoryId = categoryId);
     _loadSuggestions(
       search: _searchCtrl.text.trim().isEmpty ? null : _searchCtrl.text.trim(),
       categoryId: categoryId,
@@ -134,17 +139,14 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
     context.push(AppRouteNames.saleDetailPath(sale.id));
   }
 
-  void _onCustomerChanged(String v) {
-    ref.read(newSaleProvider.notifier).setCustomerName(v);
-  }
-
-  void _onNotesChanged(String v) {
-    ref.read(newSaleProvider.notifier).setNotes(v);
-  }
-
-  void _onPaidChanged(String v) {
-    final parsed = int.tryParse(v.replaceAll(RegExp(r'[^0-9]'), ''));
-    ref.read(newSaleProvider.notifier).setPaidAmount(parsed);
+  void _clearCart() {
+    ref.read(newSaleProvider.notifier).clear();
+    setState(() {
+      _showDetails = false;
+      _customerCtrl.clear();
+      _notesCtrl.clear();
+      _paidCtrl.clear();
+    });
   }
 
   @override
@@ -152,40 +154,35 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
     final strings = ref.watch(appStringsProvider);
-    final cart = ref.watch(newSaleProvider);
-    final notifier = ref.read(newSaleProvider.notifier);
     final categoriesAsync = ref.watch(categoriesProvider);
+    final cartEmpty = ref.watch(newSaleProvider.select((s) => s.isEmpty));
 
-    final int debtAmount = cart.paidAmount != null
-        ? (cart.totalAmount - cart.paidAmount!).clamp(0, cart.totalAmount)
-        : 0;
+    ref.listen(activeShellTabIndexProvider, (prev, next) {
+      if (next == ShellTabs.sale && prev != next) {
+        _reloadIfSaleTabActive();
+      }
+    });
+
+    if (!_saleTabLoaded &&
+        ref.read(activeShellTabIndexProvider) == ShellTabs.sale) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _reloadIfSaleTabActive());
+    }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(strings.newSale, style: theme.textTheme.headlineSmall),
         actions: [
-          if (!cart.isEmpty)
+          if (!cartEmpty)
             TextButton.icon(
               icon: const Icon(Icons.delete_sweep_outlined, size: 18),
               label: const Text('Clear'),
-              onPressed: cart.submitting
-                  ? null
-                  : () {
-                      notifier.clear();
-                      setState(() {
-                        _showDetails = false;
-                        _customerCtrl.clear();
-                        _notesCtrl.clear();
-                        _paidCtrl.clear();
-                      });
-                    },
+              onPressed: ref.read(newSaleProvider).submitting ? null : _clearCart,
             ),
         ],
       ),
       body: Column(
         children: [
-          // ── Search Bar ──────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
             child: TextField(
@@ -226,8 +223,6 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
               ),
             ),
           ),
-
-          // ── Category Chips Filter ──────────────────────────────────
           categoriesAsync.maybeWhen(
             data: (categories) {
               if (categories.isEmpty) return const SizedBox.shrink();
@@ -262,536 +257,457 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
             orElse: () => const SizedBox.shrink(),
           ),
           const SizedBox(height: 10),
-
-          // ── Main Content Area ──────────────────────────────────────
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 120),
-              children: [
-                // ── Active Cart Section (if items in cart) ────────────
-                if (!cart.isEmpty) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${strings.cartItems} (${cart.distinctCount})',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      Text(
-                        '${cart.unitCount} units',
-                        style: TextStyle(
-                          fontFamily: AppTheme.fontFamily,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  ...cart.lines.asMap().entries.map((entry) {
-                    final line = entry.value;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: CartLineTile(
-                        line: line,
-                        onIncrement: () => notifier.increment(line.product.id),
-                        onDecrement: () => notifier.decrement(line.product.id),
-                        onRemove: () => notifier.remove(line.product.id),
-                      ),
-                    );
-                  }),
-
-                  // ── Customer & Payment details accordion ────────────
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: () => setState(() => _showDetails = !_showDetails),
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isLight ? AppColors.white : AppColors.cardDark,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isLight ? AppColors.border : AppColors.borderDark,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.person_outline,
-                            size: 20,
-                            color: isLight ? AppColors.secondary : AppColors.accent,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              cart.customerName != null
-                                  ? '${strings.customerName}: ${cart.customerName}'
-                                  : '${strings.customerName} & ${strings.notes}',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: cart.customerName != null
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          if (cart.hasDebt)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: AppColors.debtRed.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(99),
-                              ),
-                              child: Text(
-                                '${strings.due} ${formatDAAmount(debtAmount)}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.debtRed,
-                                ),
-                              ),
-                            ),
-                          const SizedBox(width: 6),
-                          Icon(
-                            _showDetails ? Icons.expand_less : Icons.expand_more,
-                            color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
-                          ),
-                        ],
-                      ),
+            child: CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+                  sliver: SliverToBoxAdapter(
+                    child: _NewSaleCartSection(
+                      showDetails: _showDetails,
+                      customerCtrl: _customerCtrl,
+                      notesCtrl: _notesCtrl,
+                      paidCtrl: _paidCtrl,
+                      onToggleDetails: () =>
+                          setState(() => _showDetails = !_showDetails),
+                      onCustomerChanged: (v) =>
+                          ref.read(newSaleProvider.notifier).setCustomerName(v),
+                      onNotesChanged: (v) =>
+                          ref.read(newSaleProvider.notifier).setNotes(v),
+                      onPaidChanged: (v) {
+                        final parsed =
+                            int.tryParse(v.replaceAll(RegExp(r'[^0-9]'), ''));
+                        ref.read(newSaleProvider.notifier).setPaidAmount(parsed);
+                      },
                     ),
                   ),
-
-                  if (_showDetails) ...[
-                    const SizedBox(height: 10),
-                    _DetailField(
-                      controller: _customerCtrl,
-                      hint: strings.customerName,
-                      icon: Icons.person_outline,
-                      isLight: isLight,
-                      onChanged: _onCustomerChanged,
-                    ),
-                    const SizedBox(height: 8),
-                    _DetailField(
-                      controller: _notesCtrl,
-                      hint: strings.notes,
-                      icon: Icons.note_outlined,
-                      isLight: isLight,
-                      maxLines: 2,
-                      onChanged: _onNotesChanged,
-                    ),
-                    const SizedBox(height: 8),
-                    _DetailField(
-                      controller: _paidCtrl,
-                      hint: strings.amountPaid,
-                      icon: Icons.payments_outlined,
-                      isLight: isLight,
-                      keyboardType: TextInputType.number,
-                      onChanged: _onPaidChanged,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: SliverToBoxAdapter(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _searchCtrl.text.isNotEmpty
+                              ? '${strings.searchProducts} (${_products.length})'
+                              : '${strings.availableProducts} (${_products.length})',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                          ),
+                        ),
+                        if (_loadingProducts)
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
                       ],
                     ),
-                    if (cart.paidAmount != null && cart.paidAmount! < cart.totalAmount) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                if (_loadError != null)
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    sliver: SliverToBoxAdapter(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppColors.debtRed.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.debtRed.withValues(alpha: 0.3),
-                          ),
+                          color: AppColors.danger.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.warning_amber_rounded, size: 18, color: AppColors.debtRed),
-                            const SizedBox(width: 8),
+                            const Icon(Icons.error_outline,
+                                color: AppColors.danger),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text(_loadError!)),
+                            TextButton(
+                              onPressed: _reloadIfSaleTabActive,
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                else if (_products.isEmpty && !_loadingProducts)
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    sliver: SliverToBoxAdapter(
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: isLight ? AppColors.white : AppColors.cardDark,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: isLight ? AppColors.border : AppColors.borderDark,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.inventory_2_outlined,
+                              size: 36,
+                              color: isLight ? AppColors.gray400 : AppColors.gray600,
+                            ),
+                            const SizedBox(height: 8),
                             Text(
-                              '${strings.outstandingDebt}: ${formatDAAmount(debtAmount)}',
-                              style: const TextStyle(
-                                color: AppColors.debtRed,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
+                              'No products found',
+                              style: TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontWeight: FontWeight.w600,
+                                color: isLight ? AppColors.gray600 : AppColors.gray400,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ],
-
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 14),
-                ],
-
-                // ── Available Products / Suggestions Section ─────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _searchCtrl.text.isNotEmpty
-                          ? '${strings.searchProducts} (${_products.length})'
-                          : '${strings.availableProducts} (${_products.length})',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                      ),
-                    ),
-                    if (_loadingProducts)
-                      const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                if (_loadError != null)
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.danger.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline, color: AppColors.danger),
-                        const SizedBox(width: 10),
-                        Expanded(child: Text(_loadError!)),
-                        TextButton(
-                          onPressed: _loadSuggestions,
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  )
-                else if (_products.isEmpty && !_loadingProducts)
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: isLight ? AppColors.white : AppColors.cardDark,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: isLight ? AppColors.border : AppColors.borderDark,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.inventory_2_outlined,
-                          size: 36,
-                          color: isLight ? AppColors.gray400 : AppColors.gray600,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'No products found',
-                          style: TextStyle(
-                            fontFamily: AppTheme.fontFamily,
-                            fontWeight: FontWeight.w600,
-                            color: isLight ? AppColors.gray600 : AppColors.gray400,
-                          ),
-                        ),
-                      ],
                     ),
                   )
                 else
-                  ..._products.map((product) {
-                    final inCartQty = cart.lines
-                        .firstWhere(
-                          (l) => l.product.id == product.id,
-                          orElse: () => CartLine(product: product, quantity: 0),
-                        )
-                        .quantity;
-
-                    final isOutOfStock = product.isOutOfStock;
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: isLight ? AppColors.white : AppColors.cardDark,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: inCartQty > 0
-                              ? AppColors.primary
-                              : (isLight ? AppColors.border : AppColors.borderDark),
-                          width: inCartQty > 0 ? 1.6 : 1.2,
-                        ),
-                        boxShadow: [
-                          if (inCartQty > 0)
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.12),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                        ],
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final product = _products[index];
+                          return _SaleProductTileWrapper(
+                            key: ValueKey(product.id),
+                            product: product,
+                            isLight: isLight,
+                            strings: strings,
+                            onAdd: product.isOutOfStock ? null : () => _add(product),
+                          );
+                        },
+                        childCount: _products.length,
                       ),
-                      child: Row(
-                        children: [
-                          // Product Thumbnail / Category Icon
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: isLight ? AppColors.inputFill : AppColors.inputFillDark,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: product.imageUrl != null && product.imageUrl!.isNotEmpty
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Image.network(
-                                      product.imageUrl!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Icon(
-                                        Icons.checkroom_rounded,
-                                        color: isLight ? AppColors.secondary : AppColors.onDark,
-                                      ),
-                                    ),
-                                  )
-                                : Icon(
-                                    Icons.checkroom_rounded,
-                                    color: isLight ? AppColors.secondary : AppColors.onDark,
-                                  ),
-                          ),
-                          const SizedBox(width: 14),
-
-                          // Details
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  product.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontFamily: AppTheme.fontFamily,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 15,
-                                    color: isOutOfStock
-                                        ? AppColors.textMuted
-                                        : (isLight ? AppColors.dark : AppColors.onDark),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: isLight ? AppColors.inputFill : AppColors.inputFillDark,
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(
-                                          color: isLight ? AppColors.border : AppColors.borderDark,
-                                          width: 0.6,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        product.categoryName,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: isLight ? AppColors.secondary : AppColors.onDark,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      isOutOfStock ? strings.outOfStock : '${strings.inStock}: ${product.quantity}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                        color: isOutOfStock
-                                            ? AppColors.danger
-                                            : (isLight ? AppColors.textMuted : AppColors.textMutedDark),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(width: 10),
-
-                          // Price & Quick Add Button
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                formatDAAmount(product.sellingPrice),
-                                style: TextStyle(
-                                  fontFamily: AppTheme.fontFamily,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 15,
-                                  color: isLight ? AppColors.dark : AppColors.onDark,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              if (inCartQty > 0)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    'x$inCartQty',
-                                    style: const TextStyle(
-                                      fontFamily: AppTheme.fontFamily,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                )
-                              else
-                                SizedBox(
-                                  height: 34,
-                                  child: FilledButton.icon(
-                                    style: FilledButton.styleFrom(
-                                      backgroundColor: isOutOfStock
-                                          ? AppColors.gray300
-                                          : AppColors.primary,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                    ),
-                                    icon: const Icon(Icons.add, size: 16),
-                                    label: Text(
-                                      strings.isFrench ? 'Ajouter' : 'Add',
-                                      style: const TextStyle(
-                                        fontFamily: AppTheme.fontFamily,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    onPressed: isOutOfStock ? null : () => _add(product),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
+                    ),
+                  ),
               ],
             ),
           ),
         ],
       ),
+      bottomNavigationBar: _NewSaleCheckoutBar(onConfirm: _confirm),
+    );
+  }
+}
 
-      // ── Sticky Floating Checkout Bar ──────────────────────────────
-      bottomNavigationBar: cart.isEmpty
-          ? null
-          : SafeArea(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-                decoration: BoxDecoration(
-                  color: isLight ? AppColors.white : AppColors.cardDark,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 16,
-                      offset: const Offset(0, -4),
-                    ),
-                  ],
-                  border: Border(
-                    top: BorderSide(
-                      color: isLight ? AppColors.border : AppColors.borderDark,
+class _NewSaleCartSection extends ConsumerWidget {
+  const _NewSaleCartSection({
+    required this.showDetails,
+    required this.customerCtrl,
+    required this.notesCtrl,
+    required this.paidCtrl,
+    required this.onToggleDetails,
+    required this.onCustomerChanged,
+    required this.onNotesChanged,
+    required this.onPaidChanged,
+  });
+
+  final bool showDetails;
+  final TextEditingController customerCtrl;
+  final TextEditingController notesCtrl;
+  final TextEditingController paidCtrl;
+  final VoidCallback onToggleDetails;
+  final void Function(String) onCustomerChanged;
+  final void Function(String) onNotesChanged;
+  final void Function(String) onPaidChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cart = ref.watch(newSaleProvider);
+    if (cart.isEmpty) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final isLight = theme.brightness == Brightness.light;
+    final strings = ref.watch(appStringsProvider);
+    final notifier = ref.read(newSaleProvider.notifier);
+    final debtAmount = cart.paidAmount != null
+        ? (cart.totalAmount - cart.paidAmount!).clamp(0, cart.totalAmount)
+        : 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '${strings.cartItems} (${cart.distinctCount})',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            Text(
+              '${cart.unitCount} units',
+              style: TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        ...cart.lines.map(
+          (line) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: CartLineTile(
+              line: line,
+              onIncrement: () => notifier.increment(line.product.id),
+              onDecrement: () => notifier.decrement(line.product.id),
+              onRemove: () => notifier.remove(line.product.id),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: onToggleDetails,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isLight ? AppColors.white : AppColors.cardDark,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isLight ? AppColors.border : AppColors.borderDark,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person_outline,
+                  size: 20,
+                  color: isLight ? AppColors.secondary : AppColors.accent,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    cart.customerName != null
+                        ? '${strings.customerName}: ${cart.customerName}'
+                        : '${strings.customerName} & ${strings.notes}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: cart.customerName != null
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                     ),
                   ),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (cart.error != null) ...[
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          cart.error!,
-                          style: const TextStyle(
-                            color: AppColors.danger,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                    Row(
-                      children: [
-                        Text(
-                          '${cart.unitCount} item${cart.unitCount == 1 ? '' : 's'}',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
-                          ),
-                        ),
-                        const Spacer(),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              formatDAAmount(cart.totalAmount),
-                              style: TextStyle(
-                                fontFamily: AppTheme.fontFamily,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 22,
-                                color: isLight ? AppColors.dark : AppColors.onDark,
-                              ),
-                            ),
-                            if (cart.paidAmount != null && cart.paidAmount! < cart.totalAmount)
-                              Text(
-                                '${strings.paid} ${formatDAAmount(cart.paidAmount!)} · ${strings.due} ${formatDAAmount(debtAmount)}',
-                                style: const TextStyle(
-                                  fontFamily: AppTheme.fontFamily,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.debtRed,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
+                if (cart.hasDebt)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.debtRed.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(99),
                     ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: FilledButton(
-                        onPressed: cart.submitting ? null : _confirm,
-                        child: cart.submitting
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.4,
-                                  color: AppColors.white,
-                                ),
-                              )
-                            : Text(
-                                cart.hasDebt
-                                    ? '${strings.confirmSale} (${strings.outstandingDebt})'
-                                    : '${strings.confirmSale} (${formatDAAmount(cart.totalAmount)})',
-                                style: const TextStyle(
-                                  fontFamily: AppTheme.fontFamily,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16,
-                                ),
-                              ),
+                    child: Text(
+                      '${strings.due} ${formatDAAmount(debtAmount)}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.debtRed,
                       ),
                     ),
-                  ],
+                  ),
+                const SizedBox(width: 6),
+                Icon(
+                  showDetails ? Icons.expand_less : Icons.expand_more,
+                  color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (showDetails) ...[
+          const SizedBox(height: 10),
+          _DetailField(
+            controller: customerCtrl,
+            hint: strings.customerName,
+            icon: Icons.person_outline,
+            isLight: isLight,
+            onChanged: onCustomerChanged,
+          ),
+          const SizedBox(height: 8),
+          _DetailField(
+            controller: notesCtrl,
+            hint: strings.notes,
+            icon: Icons.note_outlined,
+            isLight: isLight,
+            maxLines: 2,
+            onChanged: onNotesChanged,
+          ),
+          const SizedBox(height: 8),
+          _DetailField(
+            controller: paidCtrl,
+            hint: strings.amountPaid,
+            icon: Icons.payments_outlined,
+            isLight: isLight,
+            keyboardType: TextInputType.number,
+            onChanged: onPaidChanged,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          ),
+          if (cart.paidAmount != null &&
+              cart.paidAmount! < cart.totalAmount) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.debtRed.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.debtRed.withValues(alpha: 0.3),
                 ),
               ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded,
+                      size: 18, color: AppColors.debtRed),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${strings.outstandingDebt}: ${formatDAAmount(debtAmount)}',
+                    style: const TextStyle(
+                      color: AppColors.debtRed,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
             ),
+          ],
+        ],
+        const SizedBox(height: 24),
+        const Divider(),
+        const SizedBox(height: 14),
+      ],
+    );
+  }
+}
+
+class _NewSaleCheckoutBar extends ConsumerWidget {
+  const _NewSaleCheckoutBar({required this.onConfirm});
+
+  final Future<void> Function() onConfirm;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cart = ref.watch(newSaleProvider);
+    if (cart.isEmpty) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final isLight = theme.brightness == Brightness.light;
+    final strings = ref.watch(appStringsProvider);
+    final debtAmount = cart.paidAmount != null
+        ? (cart.totalAmount - cart.paidAmount!).clamp(0, cart.totalAmount)
+        : 0;
+
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+        decoration: BoxDecoration(
+          color: isLight ? AppColors.white : AppColors.cardDark,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
+          border: Border(
+            top: BorderSide(
+              color: isLight ? AppColors.border : AppColors.borderDark,
+            ),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (cart.error != null) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  cart.error!,
+                  style: const TextStyle(
+                    color: AppColors.danger,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            Row(
+              children: [
+                Text(
+                  '${cart.unitCount} item${cart.unitCount == 1 ? '' : 's'}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
+                  ),
+                ),
+                const Spacer(),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      formatDAAmount(cart.totalAmount),
+                      style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 22,
+                        color: isLight ? AppColors.dark : AppColors.onDark,
+                      ),
+                    ),
+                    if (cart.paidAmount != null &&
+                        cart.paidAmount! < cart.totalAmount)
+                      Text(
+                        '${strings.paid} ${formatDAAmount(cart.paidAmount!)} · ${strings.due} ${formatDAAmount(debtAmount)}',
+                        style: const TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.debtRed,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: FilledButton(
+                onPressed: cart.submitting ? null : onConfirm,
+                child: cart.submitting
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.4,
+                          color: AppColors.white,
+                        ),
+                      )
+                    : Text(
+                        cart.hasDebt
+                            ? '${strings.confirmSale} (${strings.outstandingDebt})'
+                            : '${strings.confirmSale} (${formatDAAmount(cart.totalAmount)})',
+                        style: const TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -855,6 +771,40 @@ class _DetailField extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Thin wrapper so each tile watches only its own cart qty via a fine-grained
+/// selector, preventing the entire product list from rebuilding on every add.
+class _SaleProductTileWrapper extends ConsumerWidget {
+  const _SaleProductTileWrapper({
+    super.key,
+    required this.product,
+    required this.isLight,
+    required this.strings,
+    required this.onAdd,
+  });
+
+  final Product product;
+  final bool isLight;
+  final AppStrings strings;
+  final VoidCallback? onAdd;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final inCartQty = ref.watch(
+      newSaleProvider.select((s) {
+        final line = s.lines.where((l) => l.product.id == product.id);
+        return line.isEmpty ? 0 : line.first.quantity;
+      }),
+    );
+    return SaleProductTile(
+      product: product,
+      inCartQty: inCartQty,
+      isLight: isLight,
+      strings: strings,
+      onAdd: onAdd,
     );
   }
 }

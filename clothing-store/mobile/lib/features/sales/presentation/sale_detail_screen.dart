@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/providers/app_refresh.dart';
 import '../../../core/utils/date.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -197,8 +198,7 @@ class SaleDetailScreen extends ConsumerWidget {
               note: 'Full settlement',
             );
         ref.invalidate(saleByIdProvider(sale.id));
-        ref.read(salesListProvider.notifier).refresh();
-        ref.invalidate(debtBadgeCountProvider);
+        refreshAfterInventoryChange(ref);
         if (context.mounted) {
           showAppSnackBar(
             context,
@@ -822,7 +822,7 @@ class _RecordPaymentSheetState extends State<_RecordPaymentSheet> {
           );
       if (!mounted) return;
       widget.parentRef.invalidate(saleByIdProvider(widget.sale.id));
-      widget.parentRef.read(salesListProvider.notifier).refresh();
+      refreshAfterInventoryChange(widget.parentRef);
       Navigator.pop(context);
       showAppSnackBar(
         context,

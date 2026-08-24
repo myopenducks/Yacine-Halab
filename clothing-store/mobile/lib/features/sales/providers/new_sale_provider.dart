@@ -1,10 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/app_refresh.dart';
 import '../../../core/network/models.dart';
-import '../../dashboard/providers/dashboard_provider.dart';
 import '../../products/models/product.dart';
-import '../../products/providers/products_provider.dart';
 import '../models/sale.dart';
 import 'sales_history_provider.dart';
 
@@ -204,10 +203,7 @@ class NewSaleNotifier extends Notifier<NewSaleState> {
             paidAmount: state.paidAmount,
           );
       state = const NewSaleState();
-      ref.read(productsListProvider.notifier).refresh();
-      ref.read(salesListProvider.notifier).refresh();
-      ref.invalidate(dashboardSummaryProvider);
-      ref.invalidate(dashboardChartProvider);
+      refreshAfterInventoryChangeFromNotifier(ref);
       return sale;
     } catch (e) {
       state = state.copyWith(

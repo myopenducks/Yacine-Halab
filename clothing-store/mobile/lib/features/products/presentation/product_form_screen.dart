@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/models.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/providers/app_refresh.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../models/product.dart';
 import '../providers/products_provider.dart';
@@ -122,7 +123,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         );
       }
 
-      await ref.read(productsListProvider.notifier).refresh();
+      refreshAfterInventoryChange(ref);
 
       if (!mounted) return;
       HapticFeedback.lightImpact();
@@ -181,7 +182,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     setState(() => _deleting = true);
     try {
       await ref.read(productServiceProvider).delete(widget.productId!);
-      await ref.read(productsListProvider.notifier).refresh();
+      refreshAfterInventoryChange(ref);
       if (!mounted) return;
       HapticFeedback.mediumImpact();
       _toast('Product deleted', kind: AppSnackKind.success);

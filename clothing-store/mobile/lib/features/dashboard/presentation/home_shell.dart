@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/providers/shell_tab_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../sales/providers/sales_history_provider.dart';
 
@@ -11,19 +12,20 @@ class HomeShell extends ConsumerWidget {
 
   final StatefulNavigationShell navigationShell;
 
-  void _goToBranch(int index) {
-    navigationShell.goBranch(
-      index,
-      initialLocation: index == navigationShell.currentIndex,
-    );
+  void _goToBranch(WidgetRef ref, int index) {
+    if (index == navigationShell.currentIndex) return;
+    ref.read(activeShellTabIndexProvider.notifier).setIndex(index);
+    navigationShell.goBranch(index, initialLocation: false);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLight = Theme.of(context).brightness == Brightness.light;
     final strings = ref.watch(appStringsProvider);
-    final debtCount = ref.watch(debtBadgeCountProvider);
-    final hasDebt = debtCount.valueOrNull != null && debtCount.valueOrNull! > 0;
+    final debtCount = ref.watch(
+      debtBadgeCountProvider.select((async) => async.valueOrNull),
+    );
+    final hasDebt = debtCount != null && debtCount > 0;
 
     final tabs = [
       TabConfig(
@@ -79,7 +81,7 @@ class HomeShell extends ConsumerWidget {
         ),
         child: NavigationBar(
           selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: _goToBranch,
+          onDestinationSelected: (index) => _goToBranch(ref, index),
           destinations: tabs.asMap().entries.map((entry) {
             final t = entry.value;
             final icon = t.hasDebtBadge && hasDebt
