@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/app_colors.dart';
 
 class AppLogo extends StatelessWidget {
@@ -16,37 +17,39 @@ class AppLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final txtColor = textColor ?? (isLight ? AppColors.dark : AppColors.surfaceLight);
+    final txtColor =
+        textColor ?? (isLight ? AppColors.dark : AppColors.surfaceLight);
 
+    // The SVG is 300×200 so we clip it to a square by centering on the wide axis
     final iconWidget = Container(
       width: size,
       height: size,
-      padding: EdgeInsets.all(size * 0.12),
       decoration: BoxDecoration(
-        color: isLight ? AppColors.card : AppColors.cardDark,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(size * 0.28),
-        border: Border.all(
-          color: isLight ? AppColors.border : AppColors.borderDark,
-          width: 1.5,
-        ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.2),
-            blurRadius: size * 0.25,
-            offset: Offset(0, size * 0.08),
+            color: AppColors.primary.withValues(alpha: 0.22),
+            blurRadius: size * 0.28,
+            offset: Offset(0, size * 0.1),
           ),
         ],
       ),
-      child: Image.asset(
-        'assets/icon/app_icon.png',
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) {
-          return Icon(
-            Icons.checkroom_rounded,
-            size: size * 0.54,
-            color: AppColors.primary,
-          );
-        },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(size * 0.28),
+        child: OverflowBox(
+          maxWidth: double.infinity,
+          maxHeight: double.infinity,
+          child: SizedBox(
+            // Scale the 300×200 SVG so its height fills our square
+            width: size * 1.5,
+            height: size,
+            child: SvgPicture.asset(
+              'assets/icon/Group.svg',
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
       ),
     );
 
