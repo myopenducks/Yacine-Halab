@@ -5,7 +5,7 @@
 [build]
 builder = "RAILPACK"
 buildCommand = "npm ci && npm run build"
-watchPatterns = ["/clothing-store/backend/**"]
+watchPatterns = ["**"]
 
 [deploy]
 startCommand = "npm run start"

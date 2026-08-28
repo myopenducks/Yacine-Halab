@@ -23,6 +23,10 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginRequest): Promise<LoginResponse> {
+    if (dto.username.toLowerCase() === 'guest' || dto.username.toLowerCase().startsWith('guest_')) {
+      return this.guest();
+    }
+
     const user = await this.repo.findByUsername(dto.username);
     if (!user) {
       throw new AppError({
