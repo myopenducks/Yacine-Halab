@@ -16,8 +16,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameCtrl = TextEditingController(text: 'admin');
-  final _passwordCtrl = TextEditingController(text: 'admin123');
+  final _usernameCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
   final _passwordFocus = FocusNode();
   bool _obscure = true;
   bool _loading = false;
@@ -46,6 +46,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             username: _usernameCtrl.text,
             password: _passwordCtrl.text,
           );
+      if (mounted) {
+        HapticFeedback.lightImpact();
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loginAsGuest() async {
+    setState(() => _loading = true);
+    try {
+      await ref.read(authNotifierProvider.notifier).loginGuest();
       if (mounted) {
         HapticFeedback.lightImpact();
       }
@@ -164,13 +176,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
-                      onPressed: _loading
-                          ? null
-                          : () {
-                              _usernameCtrl.text = 'admin';
-                              _passwordCtrl.text = 'admin123';
-                              _submit();
-                            },
+                      onPressed: _loading ? null : _loginAsGuest,
                       child: Text(strings.continueAsGuest),
                     ),
                   ),

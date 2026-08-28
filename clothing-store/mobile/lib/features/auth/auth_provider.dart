@@ -85,6 +85,29 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  Future<bool> loginGuest() async {
+    state = state.copyWith(clearError: true);
+    try {
+      final res = await _repo.loginGuest();
+      await _dio.setToken(res.token);
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        user: res.user,
+      );
+      return true;
+    } catch (e) {
+      String msg = 'Guest login failed.';
+      if (e is ApiException) {
+        msg = e.error.message;
+      }
+      state = state.copyWith(
+        status: AuthStatus.unauthenticated,
+        error: msg,
+      );
+      return false;
+    }
+  }
+
   Future<void> logout() async {
     await _repo.logoutLocally();
     state = AuthState(status: AuthStatus.unauthenticated);

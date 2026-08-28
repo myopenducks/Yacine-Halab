@@ -97,6 +97,16 @@ export class AuthService {
     return { success: true, message: 'Password changed successfully' };
   }
 
+  async guest(): Promise<LoginResponse> {
+    const user = await this.repo.createGuest();
+    const payload: { sub: string; username: string } = {
+      sub: String(user.id),
+      username: user.username,
+    };
+    const token = await this.fastify.jwt.sign(payload);
+    return { token, user: toPublic(user) };
+  }
+
   async me(payload: JwtPayload): Promise<MeResponse> {
     const user = await this.repo.findById(payload.sub);
     if (!user) {
@@ -109,3 +119,4 @@ export class AuthService {
     return toPublic(user);
   }
 }
+

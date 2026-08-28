@@ -40,4 +40,26 @@ export class AuthRepository {
       .set({ passwordHash })
       .where(eq(users.id, id));
   }
+
+  async createGuest(): Promise<User> {
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const guestUsername = `guest_${randomSuffix}`;
+    const dummyHash = '$argon2id$v=19$m=65536,t=3,p=4$guestdummy$guestdummy';
+    const [result] = await this.db.insert(users).values({
+      username: guestUsername,
+      passwordHash: dummyHash,
+    });
+    const guestUser = (await this.findById(result.insertId))!;
+
+    const INITIAL_CATEGORIES = ['T-Shirt', 'Shoes', 'Slippers', 'Shorts', 'Pants', 'Sets'];
+    for (const name of INITIAL_CATEGORIES) {
+      await this.db.insert(schema.categories).values({
+        name,
+        userId: guestUser.id,
+      });
+    }
+
+    return guestUser;
+  }
 }
+

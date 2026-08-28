@@ -19,6 +19,11 @@ export class AuthHandler {
     return ok(result);
   }
 
+  async guest(_req: FastifyRequest) {
+    const result = await this.service.guest();
+    return ok(result);
+  }
+
   async changePassword(req: FastifyRequest) {
     const payload = getJwtPayload(req);
     const dto = changePasswordSchema.parse(req.body);

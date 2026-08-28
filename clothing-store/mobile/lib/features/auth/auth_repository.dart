@@ -20,6 +20,14 @@ class AuthRepository {
     );
   }
 
+  Future<AuthLoginResult> loginGuest() {
+    return _dio.post<AuthLoginResult>(
+      '/api/v1/auth/guest',
+      body: {},
+      dataFromJson: (d) => AuthLoginResult.fromJson(d),
+    );
+  }
+
   Future<AppUser> me() {
     return _dio.get<AppUser>(
       '/api/v1/auth/me',
