@@ -27,7 +27,7 @@ export class ProductService {
     private readonly categoryRepo: CategoryRepository,
   ) {}
 
-  async list(query: ProductListQuery): Promise<ProductListResult> {
+  async list(query: ProductListQuery, userId: number): Promise<ProductListResult> {
     const { page, limit, search, categoryId, lowStock } = query;
     const { items, total } = await this.repo.findMany(
       { page, limit },
@@ -36,12 +36,13 @@ export class ProductService {
         categoryId,
         lowStock: lowStock === 'true' ? true : lowStock === 'false' ? false : undefined,
       },
+      userId,
     );
     return { items, total, page, limit };
   }
 
-  async getById(id: number): Promise<PublicProduct> {
-    const row = await this.repo.findById(id);
+  async getById(id: number, userId: number): Promise<PublicProduct> {
+    const row = await this.repo.findById(id, userId);
     if (!row) {
       throw new AppError({
         code: 'PRODUCT_NOT_FOUND',
@@ -52,8 +53,8 @@ export class ProductService {
     return row;
   }
 
-  async create(dto: CreateProductDto): Promise<PublicProduct> {
-    const category = await this.categoryRepo.findById(dto.categoryId);
+  async create(dto: CreateProductDto, userId: number): Promise<PublicProduct> {
+    const category = await this.categoryRepo.findById(dto.categoryId, userId);
     if (!category) {
       throw new AppError({
         code: 'CATEGORY_NOT_FOUND',
@@ -61,13 +62,13 @@ export class ProductService {
         message: `Category with id ${dto.categoryId} not found`,
       });
     }
-    const created = await this.repo.create(dto);
-    return this.getById(created.id);
+    const created = await this.repo.create({ ...dto, userId });
+    return this.getById(created.id, userId);
   }
 
-  async update(id: number, dto: UpdateProductDto): Promise<PublicProduct> {
+  async update(id: number, dto: UpdateProductDto, userId: number): Promise<PublicProduct> {
     if (dto.categoryId != null) {
-      const category = await this.categoryRepo.findById(dto.categoryId);
+      const category = await this.categoryRepo.findById(dto.categoryId, userId);
       if (!category) {
         throw new AppError({
           code: 'CATEGORY_NOT_FOUND',
@@ -76,7 +77,7 @@ export class ProductService {
         });
       }
     }
-    const updated = await this.repo.update(id, dto);
+    const updated = await this.repo.update(id, userId, dto);
     if (!updated) {
       throw new AppError({
         code: 'PRODUCT_NOT_FOUND',
@@ -84,11 +85,11 @@ export class ProductService {
         message: `Product with id ${id} not found`,
       });
     }
-    return this.getById(id);
+    return this.getById(id, userId);
   }
 
-  async delete(id: number): Promise<void> {
-    const exists = await this.repo.findById(id);
+  async delete(id: number, userId: number): Promise<void> {
+    const exists = await this.repo.findById(id, userId);
     if (!exists) {
       throw new AppError({
         code: 'PRODUCT_NOT_FOUND',
@@ -97,7 +98,7 @@ export class ProductService {
       });
     }
     try {
-      const affected = await this.repo.delete(id);
+      const affected = await this.repo.delete(id, userId);
       if (affected === 0) {
         throw new AppError({
           code: 'PRODUCT_NOT_FOUND',
@@ -119,8 +120,8 @@ export class ProductService {
     }
   }
 
-  async bulkUpdateCategory(dto: { productIds: number[]; categoryId: number }): Promise<{ success: boolean; affectedCount: number }> {
-    const affected = await this.repo.bulkUpdateCategory(dto.productIds, dto.categoryId);
+  async bulkUpdateCategory(dto: { productIds: number[]; categoryId: number }, userId: number): Promise<{ success: boolean; affectedCount: number }> {
+    const affected = await this.repo.bulkUpdateCategory(dto.productIds, dto.categoryId, userId);
     return { success: true, affectedCount: affected };
   }
 }

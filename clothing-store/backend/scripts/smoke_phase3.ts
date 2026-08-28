@@ -170,7 +170,7 @@ async function main() {
 
   // 16. 409 PRODUCT_HAS_SALES: manually insert a sale + sale_item linking to p2Data.id, then try delete
   const db = getDb();
-  const [saleInsert] = await db.insert(sales).values({ totalAmount: 5500, paidAmount: 5500 });
+  const [saleInsert] = await db.insert(sales).values({ totalAmount: 5500, paidAmount: 5500, userId: 1 });
   const saleId = Number(saleInsert.insertId);
   await db.insert(saleItems).values({
     saleId,

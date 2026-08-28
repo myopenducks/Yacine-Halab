@@ -24,8 +24,8 @@ const LOW_STOCK_THRESHOLD = 5;
 export class ProductRepository {
   constructor(private readonly db: MySql2Database<typeof schema>) {}
 
-  private buildWhere(filters: FindManyFilters) {
-    const clauses = [];
+  private buildWhere(filters: FindManyFilters, userId: number) {
+    const clauses = [eq(products.userId, userId)];
     if (filters.search) {
       clauses.push(like(products.name, `%${filters.search}%`));
     }
@@ -37,7 +37,7 @@ export class ProductRepository {
     } else if (filters.lowStock === false) {
       clauses.push(gt(products.quantity, LOW_STOCK_THRESHOLD));
     }
-    return clauses.length > 0 ? and(...clauses) : undefined;
+    return and(...clauses);
   }
 
   private toPublic(row: {
@@ -67,8 +67,9 @@ export class ProductRepository {
   async findMany(
     pagination: PaginationParams,
     filters: FindManyFilters,
+    userId: number,
   ): Promise<{ items: PublicProduct[]; total: number }> {
-    const where = this.buildWhere(filters);
+    const where = this.buildWhere(filters, userId);
     const offset = computeOffset(pagination);
 
     const itemsQuery = this.db
@@ -85,18 +86,15 @@ export class ProductRepository {
       })
       .from(products)
       .innerJoin(categories, eq(products.categoryId, categories.id))
+      .where(where)
       .orderBy(desc(products.id))
       .limit(pagination.limit)
       .offset(offset);
 
     const countQuery = this.db
       .select({ value: count(products.id) })
-      .from(products);
-
-    if (where) {
-      itemsQuery.where(where);
-      countQuery.where(where);
-    }
+      .from(products)
+      .where(where);
 
     const [items, countRows] = await Promise.all([itemsQuery, countQuery]);
     const total = Number(countRows[0]?.value ?? 0);
@@ -104,7 +102,7 @@ export class ProductRepository {
     return { items: items.map(this.toPublic), total };
   }
 
-  async findById(id: number): Promise<PublicProduct | null> {
+  async findById(id: number, userId: number): Promise<PublicProduct | null> {
     const rows = await this.db
       .select({
         id: products.id,
@@ -119,7 +117,7 @@ export class ProductRepository {
       })
       .from(products)
       .innerJoin(categories, eq(products.categoryId, categories.id))
-      .where(eq(products.id, id))
+      .where(and(eq(products.id, id), eq(products.userId, userId)))
       .limit(1);
     return rows[0] ? this.toPublic(rows[0]) : null;
   }
@@ -131,6 +129,7 @@ export class ProductRepository {
     sellingPrice: number;
     quantity: number;
     imageUrl?: string | null;
+    userId: number;
   }): Promise<Product> {
     const result = await this.db.insert(products).values(data);
     const insertedId = Number(result[0].insertId);
@@ -144,6 +143,7 @@ export class ProductRepository {
 
   async update(
     id: number,
+    userId: number,
     data: Partial<{
       name: string;
       categoryId: number;
@@ -153,26 +153,26 @@ export class ProductRepository {
       imageUrl: string | null;
     }>,
   ): Promise<Product | null> {
-    await this.db.update(products).set(data).where(eq(products.id, id));
+    await this.db.update(products).set(data).where(and(eq(products.id, id), eq(products.userId, userId)));
     const rows = await this.db
       .select()
       .from(products)
-      .where(eq(products.id, id))
+      .where(and(eq(products.id, id), eq(products.userId, userId)))
       .limit(1);
     return rows[0] ?? null;
   }
 
-  async delete(id: number): Promise<number> {
-    const result = await this.db.delete(products).where(eq(products.id, id));
+  async delete(id: number, userId: number): Promise<number> {
+    const result = await this.db.delete(products).where(and(eq(products.id, id), eq(products.userId, userId)));
     return Number(result[0].affectedRows ?? 0);
   }
 
-  async bulkUpdateCategory(productIds: number[], categoryId: number): Promise<number> {
+  async bulkUpdateCategory(productIds: number[], categoryId: number, userId: number): Promise<number> {
     if (productIds.length === 0) return 0;
     const result = await this.db
       .update(products)
       .set({ categoryId })
-      .where(inArray(products.id, productIds));
+      .where(and(inArray(products.id, productIds), eq(products.userId, userId)));
     return Number(result[0].affectedRows ?? 0);
   }
 }

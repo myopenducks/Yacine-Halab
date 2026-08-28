@@ -123,19 +123,19 @@ export class DashboardRepository {
     return between(sales.createdAt, from, to);
   }
 
-  async getLowStockCount(): Promise<number> {
+  async getLowStockCount(userId: number): Promise<number> {
     const rows = await this.db
       .select({ value: count(products.id) })
       .from(products)
-      .where(lte(products.quantity, LOW_STOCK_THRESHOLD));
+      .where(and(lte(products.quantity, LOW_STOCK_THRESHOLD), eq(products.userId, userId)));
     return Number(rows[0]?.value ?? 0);
   }
 
-  async getDebts(): Promise<{ unpaidDebtCount: number; totalUnpaidDebtDA: number }> {
-    return this.saleRepo.aggregateDebts();
+  async getDebts(userId: number): Promise<{ unpaidDebtCount: number; totalUnpaidDebtDA: number }> {
+    return this.saleRepo.aggregateDebts(userId);
   }
 
-  async getCategoryQuantities(): Promise<
+  async getCategoryQuantities(userId: number): Promise<
     Array<{ categoryId: number; name: string; quantity: number }>
   > {
     const rows = await this.db
@@ -145,7 +145,8 @@ export class DashboardRepository {
         quantity: sql<number>`COALESCE(SUM(${products.quantity}), 0)`,
       })
       .from(categories)
-      .leftJoin(products, eq(products.categoryId, categories.id))
+      .leftJoin(products, and(eq(products.categoryId, categories.id), eq(products.userId, userId)))
+      .where(eq(categories.userId, userId))
       .groupBy(categories.id)
       .orderBy(desc(categories.id));
     return rows.map((r) => ({
@@ -155,24 +156,26 @@ export class DashboardRepository {
     }));
   }
 
-  async getSummary(range: ResolvedRange): Promise<{
+  async getSummary(range: ResolvedRange, userId: number): Promise<{
     salesCount: number;
     itemsSold: number;
     revenue: number;
     profit: number;
   }> {
-    return this.saleRepo.aggregateForPeriod({ from: range.from, to: range.to });
+    return this.saleRepo.aggregateForPeriod({ from: range.from, to: range.to, userId });
   }
 
   async getBuckets(
     range: ResolvedRange,
     period: DashboardPeriod,
+    userId: number,
     month?: number,
     year?: number,
   ): Promise<DashboardSalesBucket[]> {
     const buckets = await this.saleRepo.aggregateBuckets({
       from: range.from,
       to: range.to,
+      userId,
       bucketExpr: (col) => {
         if (period === 'today') {
           // Hour of day 0..23 → HOUR(col)

@@ -10,7 +10,7 @@ import type {
 export class SaleService {
   constructor(private readonly repo: SaleRepository) {}
 
-  async create(dto: CreateSaleDto): Promise<SaleDetail> {
+  async create(dto: CreateSaleDto, userId: number): Promise<SaleDetail> {
     const productIds = [...new Set(dto.items.map((i) => i.productId))];
     if (productIds.length !== dto.items.length) {
       throw new AppError({
@@ -90,28 +90,30 @@ export class SaleService {
         paidAmount,
         customerName,
         notes,
+        userId,
       });
       for (const it of saleItemInserts) it.saleId = saleId;
       await this.repo.bulkInsertSaleItems(tx, saleItemInserts);
       await this.repo.bulkUpdateProductQuantities(tx, quantityUpdates);
 
-      const detail = await this.repo.findByIdOn(tx, saleId);
+      const detail = await this.repo.findByIdOn(tx, saleId, userId);
       return detail as SaleDetail;
     });
   }
 
-  async list(query: SaleListQuery): Promise<SaleListResult> {
+  async list(query: SaleListQuery, userId: number): Promise<SaleListResult> {
     const { page, limit, from, to } = query;
     const hasDebt = query.hasDebt ?? query.debtOnly;
     const { items, total } = await this.repo.list(
       { page, limit },
       { from, to, hasDebt },
+      userId,
     );
     return { items, total, page, limit };
   }
 
-  async getById(id: number): Promise<SaleDetail> {
-    const row = await this.repo.findById(id);
+  async getById(id: number, userId: number): Promise<SaleDetail> {
+    const row = await this.repo.findById(id, userId);
     if (!row) {
       throw new AppError({
         code: 'SALE_NOT_FOUND',
@@ -125,8 +127,9 @@ export class SaleService {
   async recordPayment(
     id: number,
     dto: { amount: number; note?: string },
+    userId: number,
   ): Promise<SaleDetail> {
-    const sale = await this.getById(id);
+    const sale = await this.getById(id, userId);
     const remaining = sale.remainingAmount;
     if (remaining <= 0) {
       throw new AppError({
@@ -147,21 +150,22 @@ export class SaleService {
     }
 
     await this.repo.updatePaidAmount(id, newPaidAmount, updatedNotes);
-    return this.getById(id);
+    return this.getById(id, userId);
   }
 
   async update(
     id: number,
     dto: { customerName?: string | null; notes?: string | null },
+    userId: number,
   ): Promise<SaleDetail> {
-    await this.getById(id);
+    await this.getById(id, userId);
     await this.repo.updateSale(id, dto);
-    return this.getById(id);
+    return this.getById(id, userId);
   }
 
-  async delete(id: number): Promise<{ success: boolean; message: string }> {
-    await this.getById(id);
-    await this.repo.deleteSale(id);
+  async delete(id: number, userId: number): Promise<{ success: boolean; message: string }> {
+    await this.getById(id, userId);
+    await this.repo.deleteSale(id, userId);
     return { success: true, message: 'Sale deleted and inventory restored successfully' };
   }
 }

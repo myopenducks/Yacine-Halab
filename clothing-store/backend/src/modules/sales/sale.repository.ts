@@ -42,18 +42,19 @@ export class SaleRepository {
   async list(
     pagination: PaginationParams,
     filters: Pick<SaleListQuery, 'from' | 'to' | 'hasDebt'>,
+    userId: number,
   ): Promise<{ items: SaleHeader[]; total: number }> {
     const dateWhere = this.buildDateRangeWhere(filters.from, filters.to);
     const offset = computeOffset(pagination);
 
-    const conditions = [];
+    const conditions = [eq(sales.userId, userId)];
     if (dateWhere) conditions.push(dateWhere);
     if (filters.hasDebt === true) {
       conditions.push(sql`${sales.totalAmount} > ${sales.paidAmount}`);
     } else if (filters.hasDebt === false) {
       conditions.push(sql`${sales.totalAmount} <= ${sales.paidAmount}`);
     }
-    const combinedWhere = conditions.length > 0 ? and(...conditions) : undefined;
+    const combinedWhere = and(...conditions);
 
     const itemsBase = this.db
       .select({
@@ -116,14 +117,15 @@ export class SaleRepository {
     return { items, total };
   }
 
-  async findById(id: number): Promise<SaleDetail | null> {
-    return this.findByIdOn(this.db, id);
+  async findById(id: number, userId: number): Promise<SaleDetail | null> {
+    return this.findByIdOn(this.db, id, userId);
   }
 
   /** Read-only variant usable inside an ongoing transaction (reads tx-scoped, uncommitted rows). */
   async findByIdOn(
     scope: MySql2Database<typeof schema>,
     id: number,
+    userId: number,
   ): Promise<SaleDetail | null> {
     const headers = await scope
       .select({
@@ -135,7 +137,7 @@ export class SaleRepository {
         createdAt: sales.createdAt,
       })
       .from(sales)
-      .where(eq(sales.id, id))
+      .where(and(eq(sales.id, id), eq(sales.userId, userId)))
       .limit(1);
     if (headers.length === 0) return null;
     const h = headers[0];
@@ -214,6 +216,7 @@ export class SaleRepository {
       paidAmount: number;
       customerName?: string | null;
       notes?: string | null;
+      userId: number;
     },
   ): Promise<number> {
     const result = await tx.insert(sales).values(data);
@@ -245,8 +248,11 @@ export class SaleRepository {
     }
   }
 
-  async aggregateDebts(): Promise<{ unpaidDebtCount: number; totalUnpaidDebtDA: number }> {
-    const debtWhere = sql`${sales.totalAmount} > ${sales.paidAmount}`;
+  async aggregateDebts(userId: number): Promise<{ unpaidDebtCount: number; totalUnpaidDebtDA: number }> {
+    const debtWhere = and(
+      eq(sales.userId, userId),
+      sql`${sales.totalAmount} > ${sales.paidAmount}`,
+    );
     const q = this.db
       .select({
         debtCount: count(sales.id),
@@ -289,6 +295,7 @@ export class SaleRepository {
   async aggregateForPeriod(args: {
     from?: Date;
     to?: Date;
+    userId: number;
   }): Promise<{
     salesCount: number;
     itemsSold: number;
@@ -296,25 +303,24 @@ export class SaleRepository {
     profit: number;
   }> {
     const dateWhere = this.buildDateRangeWhere(args.from, args.to);
+    const userWhere = eq(sales.userId, args.userId);
+    const combinedWhere = dateWhere ? and(userWhere, dateWhere) : userWhere;
 
     const salesCountPromise = (async () => {
-      const q = this.db.select({ value: count(sales.id) }).from(sales);
-      if (dateWhere) q.where(dateWhere);
-      const r = await q;
+      const r = await this.db.select({ value: count(sales.id) }).from(sales).where(combinedWhere);
       return Number(r[0]?.value ?? 0);
     })();
 
     const totalsPromise = (async () => {
-      const q = this.db
+      const r = await this.db
         .select({
           qty: sum(saleItems.quantity),
           revenue: sum(sql<number>`${saleItems.quantity} * ${saleItems.unitPrice}`),
           cost: sum(sql<number>`${saleItems.quantity} * ${saleItems.purchasePrice}`),
         })
         .from(saleItems)
-        .innerJoin(sales, eq(saleItems.saleId, sales.id));
-      if (dateWhere) q.where(dateWhere);
-      const r = await q;
+        .innerJoin(sales, eq(saleItems.saleId, sales.id))
+        .where(combinedWhere);
       const row = r[0];
       const itemsSold = Number(row?.qty ?? 0);
       const revenue = Number(row?.revenue ?? 0);
@@ -329,10 +335,11 @@ export class SaleRepository {
   async aggregateBuckets(args: {
     from: Date;
     to: Date;
+    userId: number;
     bucketExpr: (col: typeof sales.createdAt) => any;
   }): Promise<Array<{ label: string; revenue: number; profit: number; count: number }>> {
-    const { from, to, bucketExpr } = args;
-    const dateWhere = between(sales.createdAt, from, to);
+    const { from, to, userId, bucketExpr } = args;
+    const dateWhere = and(between(sales.createdAt, from, to), eq(sales.userId, userId));
     const labelCol = bucketExpr(sales.createdAt);
     const rows = await this.db
       .select({
@@ -362,12 +369,12 @@ export class SaleRepository {
   }
 
   // Kept for backward-compat helper (not used by service currently)
-  async findSaleHeaderById(id: number): Promise<Sale | null> {
-    const rows = await this.db.select().from(sales).where(eq(sales.id, id)).limit(1);
+  async findSaleHeaderById(id: number, userId: number): Promise<Sale | null> {
+    const rows = await this.db.select().from(sales).where(and(eq(sales.id, id), eq(sales.userId, userId))).limit(1);
     return rows[0] ?? null;
   }
 
-  async deleteSale(id: number): Promise<{ success: boolean }> {
+  async deleteSale(id: number, userId: number): Promise<{ success: boolean }> {
     return this.transaction(async (tx) => {
       // 1. Get all sale items for this sale
       const items = await tx.select().from(saleItems).where(eq(saleItems.saleId, id));
@@ -384,7 +391,7 @@ export class SaleRepository {
 
       // 3. Delete sale items & sale
       await tx.delete(saleItems).where(eq(saleItems.saleId, id));
-      await tx.delete(sales).where(eq(sales.id, id));
+      await tx.delete(sales).where(and(eq(sales.id, id), eq(sales.userId, userId)));
 
       return { success: true };
     });

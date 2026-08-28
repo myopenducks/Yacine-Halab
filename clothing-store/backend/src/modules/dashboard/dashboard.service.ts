@@ -12,7 +12,7 @@ import type {
 export class DashboardService {
   constructor(private readonly repo: DashboardRepository) {}
 
-  async summary(query: SummaryQuery): Promise<SummaryResponse> {
+  async summary(query: SummaryQuery, userId: number): Promise<SummaryResponse> {
     const range = resolvePeriodRange({
       period: query.period,
       month: query.month,
@@ -23,10 +23,10 @@ export class DashboardService {
 
     const [periodAgg, lowStockCount, debts, categoryQuantities] =
       await Promise.all([
-        this.repo.getSummary(range),
-        this.repo.getLowStockCount(),
-        this.repo.getDebts(),
-        this.repo.getCategoryQuantities(),
+        this.repo.getSummary(range, userId),
+        this.repo.getLowStockCount(userId),
+        this.repo.getDebts(userId),
+        this.repo.getCategoryQuantities(userId),
       ]);
 
     return {
@@ -44,7 +44,7 @@ export class DashboardService {
     };
   }
 
-  async salesChart(query: SalesQuery): Promise<SalesChartResponse> {
+  async salesChart(query: SalesQuery, userId: number): Promise<SalesChartResponse> {
     const range = resolvePeriodRange({
       period: query.period,
       month: query.month,
@@ -56,6 +56,7 @@ export class DashboardService {
     const buckets = await this.repo.getBuckets(
       range,
       query.period,
+      userId,
       query.month,
       query.year,
     );

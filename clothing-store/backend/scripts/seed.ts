@@ -41,7 +41,7 @@ async function main() {
   for (const name of INITIAL_CATEGORIES) {
     await db
       .insert(categories)
-      .values({ name })
+      .values({ name, userId: 1 })
       .onDuplicateKeyUpdate({ set: { name } });
   }
   console.log(`[seed] categories ready (${INITIAL_CATEGORIES.length} total)`);

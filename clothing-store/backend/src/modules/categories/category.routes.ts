@@ -7,8 +7,8 @@ export function registerCategoryRoutes(
 ): void {
   app.get(
     '/api/v1/categories',
-    async (_req, reply) => {
-      const result = await handler.list();
+    async (req, reply) => {
+      const result = await handler.list(req);
       return reply.status(200).send(result);
     },
   );

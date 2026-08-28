@@ -37,7 +37,7 @@ async function main() {
   for (const name of INITIAL_CATEGORIES) {
     await db
       .insert(schema.categories)
-      .values({ name })
+      .values({ name, userId: 1 })
       .onDuplicateKeyUpdate({ set: { name } });
   }
 

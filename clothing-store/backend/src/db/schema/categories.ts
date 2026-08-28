@@ -4,12 +4,18 @@ import {
   timestamp,
   uniqueIndex,
   varchar,
+  bigint,
+  index,
 } from 'drizzle-orm/mysql-core';
+import { users } from './users';
 
 export const categories = mysqlTable(
   'categories',
   {
     id: serial('id').primaryKey(),
+    userId: bigint('user_id', { mode: 'number', unsigned: true })
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 100 }).notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
@@ -18,7 +24,8 @@ export const categories = mysqlTable(
       .onUpdateNow(),
   },
   (table) => ({
-    nameUniqueIdx: uniqueIndex('categories_name_unique').on(table.name),
+    nameUniqueIdx: uniqueIndex('categories_name_unique').on(table.userId, table.name),
+    userIdx: index('categories_user_idx').on(table.userId),
   }),
 );
 

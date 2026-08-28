@@ -11,11 +11,15 @@ import {
 } from 'drizzle-orm/mysql-core';
 import { categories } from './categories';
 import { saleItems } from './sale-items';
+import { users } from './users';
 
 export const products = mysqlTable(
   'products',
   {
     id: serial('id').primaryKey(),
+    userId: bigint('user_id', { mode: 'number', unsigned: true })
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     categoryId: bigint('category_id', { mode: 'number', unsigned: true })
       .notNull()
       .references(() => categories.id, { onDelete: 'restrict' }),
@@ -33,6 +37,7 @@ export const products = mysqlTable(
   (table) => ({
     nameIdx: index('products_name_idx').on(table.name),
     categoryIdx: index('products_category_idx').on(table.categoryId),
+    userIdx: index('products_user_idx').on(table.userId),
   }),
 );
 

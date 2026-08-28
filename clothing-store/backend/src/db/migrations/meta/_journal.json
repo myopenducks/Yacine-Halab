@@ -15,6 +15,13 @@
       "when": 1787514000000,
       "tag": "0001_add_sale_notes_and_customer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1787909833725,
+      "tag": "0002_conscious_mister_fear",
+      "breakpoints": true
     }
   ]
 }
