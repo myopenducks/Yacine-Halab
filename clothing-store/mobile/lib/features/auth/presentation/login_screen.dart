@@ -293,9 +293,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               Text(
                                 'Management & Sales Suite',
                                 style: GoogleFonts.inter(
-                                  fontSize: 18.0,
+                                  fontSize: 16.0,
                                   fontWeight: FontWeight.w400,
-                                  color: _deepEspresso,
+                                  color: _deepEspresso.withValues(alpha: 0.65),
                                   letterSpacing: 0.2,
                                 ),
                               ),

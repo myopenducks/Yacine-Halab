@@ -63,6 +63,11 @@ function isPublic(req: FastifyRequest): boolean {
 }
 
 export async function registerAuth(app: FastifyInstance): Promise<void> {
+  // Belt-and-suspenders: also skip JWT via preHandler on public routes
+  app.addHook('preHandler', async (req) => {
+    if (isPublic(req)) return;
+  });
+
   app.addHook('onRequest', async (req) => {
     if (isPublic(req)) return;
 
