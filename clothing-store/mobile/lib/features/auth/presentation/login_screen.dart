@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/l10n/app_strings.dart';
@@ -87,12 +88,72 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: ColoredBox(color: _bgCream),
           ),
 
-          // ── Layer 2: Exact Line-Art Boutique Background Pattern ──
+          // ── Layer 2: Exact Line-Art Boutique Background Pattern + Vector Assets ──
           const Positioned.fill(
             child: CustomPaint(
               painter: BoutiqueBackgroundPainter(
                 strokeColor: _deepEspresso,
                 opacity: 0.13,
+              ),
+            ),
+          ),
+
+          // Top-right boutique garment SVG
+          Positioned(
+            top: 75,
+            right: 18,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.12,
+                child: SvgPicture.asset(
+                  'assets/icon/Vector.svg',
+                  width: 72,
+                  height: 72,
+                  colorFilter: const ColorFilter.mode(
+                    _deepEspresso,
+                    BlendMode.srcIn,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Top boutique hanger SVG
+          Positioned(
+            top: 52,
+            right: 105,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.11,
+                child: SvgPicture.asset(
+                  'assets/icon/Group (1).svg',
+                  width: 65,
+                  height: 40,
+                  colorFilter: const ColorFilter.mode(
+                    _deepEspresso,
+                    BlendMode.srcIn,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Bottom boutique hanger SVG
+          Positioned(
+            bottom: 85,
+            left: 140,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.11,
+                child: SvgPicture.asset(
+                  'assets/icon/Group (2).svg',
+                  width: 58,
+                  height: 40,
+                  colorFilter: const ColorFilter.mode(
+                    _deepEspresso,
+                    BlendMode.srcIn,
+                  ),
+                ),
               ),
             ),
           ),
