@@ -267,14 +267,14 @@ class SaleDetailScreen extends ConsumerWidget {
 
     try {
       await ref.read(saleServiceProvider).deleteSale(sale.id);
-      refreshAfterInventoryChangeFromNotifier(ref);
+      refreshAfterInventoryChange(ref);
       if (context.mounted) {
-        showAppToast(context, strings.saleDeleted, type: ToastType.success);
+        showAppSnackBar(context, strings.saleDeleted, kind: AppSnackKind.success);
         context.pop();
       }
     } catch (e) {
       if (context.mounted) {
-        showAppToast(context, 'Failed to delete sale', type: ToastType.error);
+        showAppSnackBar(context, 'Failed to delete sale', kind: AppSnackKind.error);
       }
     }
   }

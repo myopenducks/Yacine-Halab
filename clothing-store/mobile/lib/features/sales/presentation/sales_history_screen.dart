@@ -410,10 +410,10 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
     final success = await ref.read(salesListProvider.notifier).deleteSale(sale.id);
     if (!mounted) return;
     if (success) {
-      refreshAfterInventoryChangeFromNotifier(ref);
-      showAppToast(context, strings.saleDeleted, type: ToastType.success);
+      refreshAfterInventoryChange(ref);
+      showAppSnackBar(context, strings.saleDeleted, kind: AppSnackKind.success);
     } else {
-      showAppToast(context, 'Failed to delete sale', type: ToastType.error);
+      showAppSnackBar(context, 'Failed to delete sale', kind: AppSnackKind.error);
     }
   }
 

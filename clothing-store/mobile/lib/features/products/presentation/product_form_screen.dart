@@ -126,7 +126,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       }
 
       if (!mounted) return;
-      refreshAfterInventoryChangeFromNotifier(ref);
+      refreshAfterInventoryChange(ref);
       _toast(
         strings.productSaved,
         kind: AppSnackKind.success,
@@ -180,7 +180,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     try {
       await ref.read(productServiceProvider).delete(widget.productId!);
       if (!mounted) return;
-      refreshAfterInventoryChangeFromNotifier(ref);
+      refreshAfterInventoryChange(ref);
       _toast(
         strings.productDeleted,
         kind: AppSnackKind.success,

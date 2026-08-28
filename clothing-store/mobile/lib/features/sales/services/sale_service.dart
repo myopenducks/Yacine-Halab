@@ -68,7 +68,7 @@ class SaleService {
 
   /// Delete a sale and restore inventory stock.
   Future<void> deleteSale(int saleId) {
-    return _dio.delete<void>('/api/v1/sales/$saleId');
+    return _dio.deleteVoid('/api/v1/sales/$saleId');
   }
 
   /// Record a partial or full payment for a debt sale.

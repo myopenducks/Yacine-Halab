@@ -6,7 +6,7 @@ import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/placeholder_notice.dart';
+import '../../../../core/widgets/app_feedback.dart';
 import '../../../products/presentation/widgets/product_tile.dart';
 import '../../../products/providers/products_provider.dart';
 
@@ -236,15 +236,12 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 40, 20, 32),
         children: [
-          PlaceholderNotice(
+          AppEmptyState(
             icon: Icons.wifi_off_rounded,
             title: strings.noData,
             subtitle: list.error!,
-          ),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: () => ref.read(productsListProvider.notifier).refresh(),
-            child: Text(strings.cancel),
+            actionLabel: strings.cancel,
+            onAction: () => ref.read(productsListProvider.notifier).refresh(),
           ),
         ],
       );
@@ -255,15 +252,12 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 40, 20, 32),
         children: [
-          PlaceholderNotice(
+          AppEmptyState(
             icon: Icons.inventory_2_outlined,
             title: strings.noProductsFound,
             subtitle: strings.noData,
-          ),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: () => _openForm(),
-            child: Text(strings.addProduct),
+            actionLabel: strings.addProduct,
+            onAction: () => _openForm(),
           ),
         ],
       );
