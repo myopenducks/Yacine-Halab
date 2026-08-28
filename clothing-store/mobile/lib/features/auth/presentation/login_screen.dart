@@ -98,6 +98,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
 
+          // Top-center authentic boutique table SVG (Vector (4).svg)
+          Positioned(
+            top: 48,
+            left: 140,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.12,
+                child: SvgPicture.asset(
+                  'assets/icon/Vector (4).svg',
+                  width: 76,
+                  height: 38,
+                  colorFilter: const ColorFilter.mode(
+                    _deepEspresso,
+                    BlendMode.srcIn,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
           // Top-right boutique garment SVG
           Positioned(
             top: 75,
@@ -129,6 +149,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   'assets/icon/Group (1).svg',
                   width: 65,
                   height: 40,
+                  colorFilter: const ColorFilter.mode(
+                    _deepEspresso,
+                    BlendMode.srcIn,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Middle authentic boutique table SVG (Vector (4).svg)
+          Positioned(
+            bottom: 170,
+            left: 135,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.12,
+                child: SvgPicture.asset(
+                  'assets/icon/Vector (4).svg',
+                  width: 76,
+                  height: 38,
+                  colorFilter: const ColorFilter.mode(
+                    _deepEspresso,
+                    BlendMode.srcIn,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Middle authentic boutique gift box SVG (Vector (3).svg)
+          Positioned(
+            bottom: 162,
+            right: 68,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.12,
+                child: SvgPicture.asset(
+                  'assets/icon/Vector (3).svg',
+                  width: 54,
+                  height: 56,
                   colorFilter: const ColorFilter.mode(
                     _deepEspresso,
                     BlendMode.srcIn,
