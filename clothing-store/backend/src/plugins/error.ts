@@ -52,9 +52,13 @@ export async function registerErrorHandling(app: FastifyInstance): Promise<void>
       .send(
         fail(
           'INTERNAL_ERROR',
-          statusCode === 500
-            ? 'An unexpected error occurred'
-            : (err.message ?? 'Request failed'),
+          (err as any)?.message ?? 'An unexpected error occurred',
+          {
+            code: (err as any)?.code,
+            sqlMessage: (err as any)?.sqlMessage,
+            sql: (err as any)?.sql,
+            stack: (err as any)?.stack,
+          },
         ),
       );
   });
