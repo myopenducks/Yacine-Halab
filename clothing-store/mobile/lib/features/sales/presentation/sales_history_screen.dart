@@ -195,49 +195,109 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
 
   Future<void> _quickMarkPaid(SaleHeader sale) async {
     final strings = ref.read(appStringsProvider);
+    final isLight = Theme.of(context).brightness == Brightness.light;
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: Text(
-            strings.isFrench
-                ? 'Clôturer la vente #${sale.id} ?'
-                : 'Mark Sale #${sale.id} as Finished?',
-          ),
-          content: Text(
-            strings.isFrench
-                ? 'Le reste dû est de ${formatDAAmount(sale.remainingAmount)}.\nVoulez-vous marquer cette vente comme entièrement réglée ?'
-                : 'Remaining due is ${formatDAAmount(sale.remainingAmount)}.\nDo you want to mark this sale as fully paid?',
-          ),
-          actions: [
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: Text(strings.cancel),
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isLight ? AppColors.white : AppColors.cardDark,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AppColors.success.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_outline_rounded,
+                  color: AppColors.success,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                strings.isFrench
+                    ? 'Régler la dette #${sale.id}'
+                    : 'Settle Debt #${sale.id}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 19,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                strings.isFrench
+                    ? 'Le reste dû est de ${formatDAAmount(sale.remainingAmount)}.\nMarquer cette vente comme entièrement payée ?'
+                    : 'Remaining due is ${formatDAAmount(sale.remainingAmount)}.\nMark this sale as fully paid?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 14,
+                  color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: isLight ? AppColors.border : AppColors.borderDark, width: 1.2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          foregroundColor: isLight ? AppColors.dark : AppColors.onDark,
+                        ),
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: Text(
+                          strings.cancel,
+                          style: const TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 2,
-                  child: SizedBox(
-                    height: 44,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(backgroundColor: AppColors.success),
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: Text(strings.markFullyPaid),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 1,
+                    child: SizedBox(
+                      height: 48,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.success,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: Text(
+                          strings.markFullyPaid,
+                          style: const TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
-        );
-      },
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
 
     if (confirm == true && mounted) {
@@ -380,37 +440,103 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
 
   Future<void> _confirmDelete(SaleHeader sale) async {
     final strings = ref.read(appStringsProvider);
+    final isLight = Theme.of(context).brightness == Brightness.light;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            const Icon(Icons.delete_outline_rounded, color: AppColors.debtRed, size: 26),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                '${strings.deleteSale} #${sale.id}',
-                style: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.bold, fontSize: 18),
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isLight ? AppColors.white : AppColors.cardDark,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AppColors.debtRed.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.debtRed,
+                  size: 30,
+                ),
               ),
-            ),
-          ],
-        ),
-        content: Text(
-          strings.deleteSaleConfirm,
-          style: const TextStyle(fontFamily: AppTheme.fontFamily, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(strings.cancel),
+              const SizedBox(height: 16),
+              Text(
+                '${strings.deleteSale} #${sale.id}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 19,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                strings.deleteSaleConfirm,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 14,
+                  color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: isLight ? AppColors.border : AppColors.borderDark, width: 1.2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          foregroundColor: isLight ? AppColors.dark : AppColors.onDark,
+                        ),
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: Text(
+                          strings.cancel,
+                          style: const TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.debtRed,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: Text(
+                          strings.delete,
+                          style: const TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.debtRed),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(strings.delete),
-          ),
-        ],
+        ),
       ),
     );
 

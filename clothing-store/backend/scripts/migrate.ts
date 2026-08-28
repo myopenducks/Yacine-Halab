@@ -28,9 +28,23 @@ async function main() {
 
   const db = drizzle(connection, { schema, mode: 'default' });
   const migrationsFolder = path.resolve(process.cwd(), 'src/db/migrations');
-
   console.log('[migrate] applying migrations from', migrationsFolder);
-  await migrate(db, { migrationsFolder });
+  try {
+    await migrate(db, { migrationsFolder });
+  } catch (err: any) {
+    if (
+      err?.code === 'ER_DUP_FIELDNAME' ||
+      err?.code === 'ER_DUP_KEYNAME' ||
+      err?.code === 'ER_TABLE_EXISTS_ERROR' ||
+      err?.sqlState === '42S21' ||
+      err?.message?.includes('Duplicate column') ||
+      err?.message?.includes('already exists')
+    ) {
+      console.warn('[migrate] Notice: Schema already partially or fully updated (' + (err.sqlMessage || err.message) + '). Continuing.');
+    } else {
+      throw err;
+    }
+  }
 
   // Auto-seed initial categories and default admin if missing
   const INITIAL_CATEGORIES = ['T-Shirt', 'Shoes', 'Slippers', 'Shorts', 'Pants', 'Sets'];

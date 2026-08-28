@@ -139,35 +139,103 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   Future<void> _confirmDelete() async {
     final strings = ref.read(appStringsProvider);
+    final isLight = Theme.of(context).brightness == Brightness.light;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          strings.deleteProduct,
-          style: const TextStyle(
-            fontFamily: AppTheme.fontFamily,
-            fontWeight: FontWeight.w700,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isLight ? AppColors.white : AppColors.cardDark,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.danger,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                strings.deleteProduct,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 19,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                strings.deleteProductConfirm,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 14,
+                  color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: isLight ? AppColors.border : AppColors.borderDark, width: 1.2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          foregroundColor: isLight ? AppColors.dark : AppColors.onDark,
+                        ),
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: Text(
+                          strings.cancel,
+                          style: const TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.danger,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: Text(
+                          strings.delete,
+                          style: const TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        content: Text(
-          strings.deleteProductConfirm,
-          style: const TextStyle(fontFamily: AppTheme.fontFamily),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(strings.cancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.danger,
-              foregroundColor: AppColors.white,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(strings.delete),
-          ),
-        ],
       ),
     );
 

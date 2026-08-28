@@ -7,6 +7,7 @@ import '../../../core/l10n/app_strings.dart';
 import '../../../core/providers/app_refresh.dart';
 import '../../../core/utils/date.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../models/sale.dart';
@@ -216,44 +217,80 @@ class SaleDetailScreen extends ConsumerWidget {
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref, SaleDetail sale) async {
     final strings = ref.read(appStringsProvider);
+    final isLight = Theme.of(context).brightness == Brightness.light;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            const Icon(Icons.delete_outline_rounded, color: _kDebt, size: 24),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                '${strings.deleteSale} #${sale.id}',
-                style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-            ),
-          ],
-        ),
-        content: Text(strings.deleteSaleConfirm),
-        actions: [
-          Row(
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isLight ? _kCardBg : _kCardDark,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: _BoutiqueOutlineButton(
-                  label: strings.cancel,
-                  onPressed: () => Navigator.of(ctx).pop(false),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: _kDebt.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: _kDebt,
+                  size: 30,
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 2,
-                child: _BoutiqueFilledButton(
-                  label: strings.delete,
-                  onPressed: () => Navigator.of(ctx).pop(true),
-                  color: _kDebt,
+              const SizedBox(height: 16),
+              Text(
+                '${strings.deleteSale} #${sale.id}',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.playfairDisplay(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: isLight ? _kEspresso : Colors.white,
                 ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                strings.deleteSaleConfirm,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 14,
+                  color: isLight ? _kEspressoLight : Colors.white70,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: _BoutiqueOutlineButton(
+                        label: strings.cancel,
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: _BoutiqueFilledButton(
+                        label: strings.delete,
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        color: _kDebt,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
 
