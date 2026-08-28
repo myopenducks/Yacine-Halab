@@ -39,29 +39,13 @@ class ProfileTab extends ConsumerWidget {
             onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
           ),
           actions: [
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 46,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 2,
-                  child: SizedBox(
-                    height: 46,
-                    child: FilledButton(
-                      onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-                      child: const Text('Save'),
-                    ),
-                  ),
-                ),
-              ],
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+              child: const Text('Save'),
             ),
           ],
         );
