@@ -1,5 +1,5 @@
 import type { MySql2Database } from 'drizzle-orm/mysql2';
-import { and, count, desc, eq, gt, inArray, like, lte } from 'drizzle-orm';
+import { and, count, desc, eq, gt, inArray, like, lte, sql } from 'drizzle-orm';
 import * as schema from '../../db';
 import { products } from '../../db/schema/products';
 import { categories } from '../../db/schema/categories';
@@ -44,7 +44,7 @@ export class ProductRepository {
     id: number;
     name: string;
     categoryId: number;
-    categoryName: string;
+    categoryName: string | null;
     purchasePrice: number;
     sellingPrice: number;
     quantity: number;
@@ -55,7 +55,7 @@ export class ProductRepository {
       id: row.id,
       name: row.name,
       categoryId: row.categoryId,
-      categoryName: row.categoryName,
+      categoryName: row.categoryName || 'Autre',
       purchasePrice: row.purchasePrice,
       sellingPrice: row.sellingPrice,
       quantity: row.quantity,
@@ -77,7 +77,7 @@ export class ProductRepository {
         id: products.id,
         name: products.name,
         categoryId: products.categoryId,
-        categoryName: categories.name,
+        categoryName: sql<string>`COALESCE(${categories.name}, 'Autre')`,
         purchasePrice: products.purchasePrice,
         sellingPrice: products.sellingPrice,
         quantity: products.quantity,
@@ -85,7 +85,7 @@ export class ProductRepository {
         createdAt: products.createdAt,
       })
       .from(products)
-      .innerJoin(categories, eq(products.categoryId, categories.id))
+      .leftJoin(categories, eq(products.categoryId, categories.id))
       .where(where)
       .orderBy(desc(products.id))
       .limit(pagination.limit)
@@ -97,7 +97,43 @@ export class ProductRepository {
       .where(where);
 
     const [items, countRows] = await Promise.all([itemsQuery, countQuery]);
-    const total = Number(countRows[0]?.value ?? 0);
+    let total = Number(countRows[0]?.value ?? 0);
+
+    // Auto-seed starter catalog if user has 0 products and no filters were applied
+    if (total === 0 && !filters.search && filters.categoryId == null && filters.lowStock == null) {
+      const userCats = await this.db.select().from(categories).where(eq(categories.userId, userId));
+      const catMap = new Map<string, number>();
+      for (const c of userCats) catMap.set(c.name, c.id);
+
+      const sampleProducts = [
+        { name: 'T-Shirt Oversize Coton Noir', cat: 'T-Shirt', buy: 1200, sell: 2200, qty: 15 },
+        { name: 'Polo Classique Blanc', cat: 'T-Shirt', buy: 1800, sell: 3000, qty: 10 },
+        { name: 'Jean Slim Bleu Denim', cat: 'Pants', buy: 2500, sell: 4500, qty: 8 },
+        { name: 'Pantalon Cargo Kaki', cat: 'Pants', buy: 2800, sell: 4800, qty: 4 },
+        { name: 'Sneakers Streetwear Blanche', cat: 'Shoes', buy: 4000, sell: 6500, qty: 6 },
+        { name: 'Claquettes Confort Cuir', cat: 'Slippers', buy: 1500, sell: 2500, qty: 12 },
+        { name: 'Short Jogging Gris', cat: 'Shorts', buy: 1400, sell: 2400, qty: 3 },
+        { name: 'Ensemble Sport Tech Noir', cat: 'Sets', buy: 5500, sell: 8500, qty: 7 },
+      ];
+
+      for (const p of sampleProducts) {
+        const cId = catMap.get(p.cat) ?? (userCats[0]?.id || 1);
+        try {
+          await this.db.insert(products).values({
+            name: p.name,
+            categoryId: cId,
+            userId,
+            purchasePrice: p.buy,
+            sellingPrice: p.sell,
+            quantity: p.qty,
+          });
+        } catch (_) {}
+      }
+
+      // Re-run query after seeding
+      const [newItems, newCount] = await Promise.all([itemsQuery, countQuery]);
+      return { items: newItems.map(this.toPublic), total: Number(newCount[0]?.value ?? 0) };
+    }
 
     return { items: items.map(this.toPublic), total };
   }
@@ -108,7 +144,7 @@ export class ProductRepository {
         id: products.id,
         name: products.name,
         categoryId: products.categoryId,
-        categoryName: categories.name,
+        categoryName: sql<string>`COALESCE(${categories.name}, 'Autre')`,
         purchasePrice: products.purchasePrice,
         sellingPrice: products.sellingPrice,
         quantity: products.quantity,
@@ -116,7 +152,7 @@ export class ProductRepository {
         createdAt: products.createdAt,
       })
       .from(products)
-      .innerJoin(categories, eq(products.categoryId, categories.id))
+      .leftJoin(categories, eq(products.categoryId, categories.id))
       .where(and(eq(products.id, id), eq(products.userId, userId)))
       .limit(1);
     return rows[0] ? this.toPublic(rows[0]) : null;

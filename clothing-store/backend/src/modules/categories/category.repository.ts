@@ -9,7 +9,17 @@ export class CategoryRepository {
   constructor(private readonly db: MySql2Database<typeof schema>) {}
 
   async findAll(userId: number): Promise<Category[]> {
-    return this.db.select().from(categories).where(eq(categories.userId, userId)).orderBy(categories.id);
+    let rows = await this.db.select().from(categories).where(eq(categories.userId, userId)).orderBy(categories.id);
+    if (rows.length === 0) {
+      const INITIAL_CATEGORIES = ['T-Shirt', 'Shoes', 'Slippers', 'Shorts', 'Pants', 'Sets'];
+      for (const name of INITIAL_CATEGORIES) {
+        try {
+          await this.db.insert(categories).values({ name, userId });
+        } catch (_) {}
+      }
+      rows = await this.db.select().from(categories).where(eq(categories.userId, userId)).orderBy(categories.id);
+    }
+    return rows;
   }
 
   async findById(id: number, userId: number): Promise<Category | null> {
