@@ -195,12 +195,14 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             content: Text(
               msg.isNotEmpty
                   ? msg
-                  : 'Ce produit a un historique de ventes. Définissez la quantité à 0.',
+                  : (strings.isFrench
+                      ? 'Ce produit a un historique de ventes. Définissez la quantité à 0.'
+                      : 'This product has sales history. Set quantity to 0 instead.'),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK'),
+                child: Text(strings.isFrench ? 'D\'accord' : 'OK'),
               ),
             ],
           ),

@@ -176,7 +176,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
           if (!cartEmpty)
             TextButton.icon(
               icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-              label: const Text('Clear'),
+              label: Text(strings.clearCart),
               onPressed: ref.read(newSaleProvider).submitting ? null : _clearCart,
             ),
         ],
@@ -326,7 +326,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                             Expanded(child: Text(_loadError!)),
                             TextButton(
                               onPressed: _reloadIfSaleTabActive,
-                              child: const Text('Retry'),
+                              child: Text(strings.retry),
                             ),
                           ],
                         ),

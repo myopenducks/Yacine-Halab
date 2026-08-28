@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/providers/settings_provider.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -22,30 +23,31 @@ class ProfileTab extends ConsumerWidget {
     WidgetRef ref,
     String current,
   ) async {
+    final strings = ref.read(appStringsProvider);
     final ctrl = TextEditingController(text: current);
     final saved = await showDialog<String?>(
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: const Text('Display name'),
+          title: Text(strings.displayName),
           content: TextField(
             controller: ctrl,
             autofocus: true,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              hintText: 'Your name',
-              helperText: 'Shown in the app. Login username stays the same.',
+            decoration: InputDecoration(
+              hintText: strings.yourName,
+              helperText: strings.displayNameHelper,
             ),
             onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(strings.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-              child: const Text('Save'),
+              child: Text(strings.save),
             ),
           ],
         );
@@ -55,11 +57,12 @@ class ProfileTab extends ConsumerWidget {
     if (saved == null || !context.mounted) return;
     await ref.read(settingsProvider.notifier).setDisplayName(saved);
     if (context.mounted) {
-      showAppSnackBar(context, 'Name updated', kind: AppSnackKind.success);
+      showAppSnackBar(context, strings.nameUpdated, kind: AppSnackKind.success);
     }
   }
 
   Future<void> _changeAvatar(BuildContext context, WidgetRef ref) async {
+    final strings = ref.read(appStringsProvider);
     final picker = ImagePicker();
     final picked = await picker.pickImage(
       source: ImageSource.gallery,
@@ -70,11 +73,12 @@ class ProfileTab extends ConsumerWidget {
     if (picked == null) return;
     await ref.read(settingsProvider.notifier).setAvatarPath(picked.path);
     if (context.mounted) {
-      showAppSnackBar(context, 'Photo updated', kind: AppSnackKind.success);
+      showAppSnackBar(context, strings.photoUpdated, kind: AppSnackKind.success);
     }
   }
 
   void _openThemeSheet(BuildContext context, WidgetRef ref) {
+    final strings = ref.read(appStringsProvider);
     final current =
         ref.read(settingsProvider).value?.themeMode ?? ThemeMode.system;
     showModalBottomSheet<void>(
@@ -87,12 +91,12 @@ class ProfileTab extends ConsumerWidget {
             children: [
               ListTile(
                 title: Text(
-                  'Theme',
+                  strings.theme,
                   style: Theme.of(ctx).textTheme.titleMedium,
                 ),
               ),
               _ThemeOptionTile(
-                label: 'System default',
+                label: strings.systemDefault,
                 selected: current == ThemeMode.system,
                 onTap: () async {
                   await ref
@@ -102,7 +106,7 @@ class ProfileTab extends ConsumerWidget {
                 },
               ),
               _ThemeOptionTile(
-                label: 'Light',
+                label: strings.light,
                 selected: current == ThemeMode.light,
                 onTap: () async {
                   await ref
@@ -112,7 +116,7 @@ class ProfileTab extends ConsumerWidget {
                 },
               ),
               _ThemeOptionTile(
-                label: 'Dark',
+                label: strings.dark,
                 selected: current == ThemeMode.dark,
                 onTap: () async {
                   await ref
@@ -130,6 +134,7 @@ class ProfileTab extends ConsumerWidget {
   }
 
   void _openLanguageSheet(BuildContext context, WidgetRef ref) {
+    final strings = ref.read(appStringsProvider);
     final current = ref.read(localeProvider);
     showModalBottomSheet<void>(
       context: context,
@@ -141,12 +146,12 @@ class ProfileTab extends ConsumerWidget {
             children: [
               ListTile(
                 title: Text(
-                  'Language / Langue',
+                  strings.language,
                   style: Theme.of(ctx).textTheme.titleMedium,
                 ),
               ),
               _ThemeOptionTile(
-                label: 'Français 🇫🇷 (Défaut)',
+                label: 'Français 🇫🇷',
                 selected: current.languageCode == 'fr',
                 onTap: () async {
                   await ref
@@ -173,7 +178,8 @@ class ProfileTab extends ConsumerWidget {
     );
   }
 
-  void _openAbout(BuildContext context) {
+  void _openAbout(BuildContext context, WidgetRef ref) {
+    final strings = ref.read(appStringsProvider);
     showAboutDialog(
       context: context,
       applicationName: 'Boutique Store',
@@ -186,23 +192,17 @@ class ProfileTab extends ConsumerWidget {
           borderRadius: BorderRadius.circular(14),
         ),
         alignment: Alignment.center,
-        child: const Text(
-          'BS',
-          style: TextStyle(
-            fontFamily: AppTheme.fontFamily,
-            fontWeight: FontWeight.w800,
-            fontSize: 18,
-            color: AppColors.onPrimary,
-          ),
+        child: const Icon(
+          Icons.checkroom_rounded,
+          color: AppColors.onPrimary,
+          size: 26,
         ),
       ),
-      children: const [
-        SizedBox(height: 8),
-        Text(
-          'Inventory and sales management for a small clothing shop.',
-        ),
-        SizedBox(height: 16),
-        DevelopedByZiadFooter(),
+      children: [
+        const SizedBox(height: 8),
+        Text(strings.aboutDescription),
+        const SizedBox(height: 16),
+        const DevelopedByZiadFooter(),
       ],
     );
   }
@@ -219,18 +219,19 @@ class ProfileTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final strings = ref.watch(appStringsProvider);
     final isLight = theme.brightness == Brightness.light;
     final auth = ref.watch(authNotifierProvider);
     final user = auth.user;
     final displayName = ref.watch(displayNameProvider);
     final avatarPath = ref.watch(avatarPathProvider);
-    final shownName = displayName ?? user?.username ?? 'User';
+    final shownName = displayName ?? user?.username ?? strings.profile;
     final loginName = user?.username;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Text('Profile', style: theme.textTheme.headlineSmall),
+        title: Text(strings.profile, style: theme.textTheme.headlineSmall),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -242,7 +243,7 @@ class ProfileTab extends ConsumerWidget {
               color: isLight ? AppColors.white : AppColors.gray900,
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: isLight ? AppColors.gray200 : AppColors.gray800,
+                color: isLight ? AppColors.border : AppColors.gray800,
                 width: 1.2,
               ),
             ),
@@ -290,8 +291,8 @@ class ProfileTab extends ConsumerWidget {
                           height: 22,
                           decoration: BoxDecoration(
                             color: isLight
-                                ? AppColors.skyBlue
-                                : AppColors.softBlue,
+                                ? AppColors.primary
+                                : AppColors.accent,
                             borderRadius: BorderRadius.circular(7),
                             border: Border.all(
                               color:
@@ -318,8 +319,8 @@ class ProfileTab extends ConsumerWidget {
                       const SizedBox(height: 4),
                       Text(
                         loginName != null
-                            ? 'Login: $loginName'
-                            : 'Signed out',
+                            ? '${strings.loginLabel}$loginName'
+                            : strings.signedOutStatus,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: isLight
                               ? AppColors.gray500
@@ -341,11 +342,11 @@ class ProfileTab extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 22),
-          _SectionTitle(label: 'Store', isLight: isLight),
+          _SectionTitle(label: strings.store, isLight: isLight),
           const SizedBox(height: 10),
           _TileRow(
-            label: 'Products inventory',
-            subtitle: 'Browse and manage stock',
+            label: strings.productsInventory,
+            subtitle: strings.browseAndManageStock,
             icon: Icons.storefront_outlined,
             isDivider: true,
             onTap: () {
@@ -354,8 +355,8 @@ class ProfileTab extends ConsumerWidget {
             },
           ),
           _TileRow(
-            label: 'Low stock alerts',
-            subtitle: 'Items running low',
+            label: strings.lowStockAlerts,
+            subtitle: strings.itemsRunningLow,
             icon: Icons.notifications_outlined,
             onTap: () {
               _goToProducts(ref, lowStock: true);
@@ -363,29 +364,29 @@ class ProfileTab extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 22),
-          _SectionTitle(label: 'App', isLight: isLight),
+          _SectionTitle(label: strings.appSection, isLight: isLight),
           const SizedBox(height: 10),
           _TileRow(
-            label: 'Language / Langue',
+            label: strings.language,
             subtitle: ref.watch(localeProvider).languageCode == 'fr'
-                ? 'Français 🇫🇷'
-                : 'English 🇬🇧',
+                ? strings.french
+                : strings.english,
             icon: Icons.language_rounded,
             isDivider: true,
             onTap: () => _openLanguageSheet(context, ref),
           ),
           _TileRow(
-            label: 'Theme',
-            subtitle: 'Light, dark, or system',
+            label: strings.theme,
+            subtitle: strings.themeSubtitle,
             icon: Icons.dark_mode_outlined,
             isDivider: true,
             onTap: () => _openThemeSheet(context, ref),
           ),
           _TileRow(
-            label: 'About',
-            subtitle: 'App info',
+            label: strings.about,
+            subtitle: strings.appInfo,
             icon: Icons.info_outline,
-            onTap: () => _openAbout(context),
+            onTap: () => _openAbout(context, ref),
           ),
           const SizedBox(height: 16),
           const Center(child: DevelopedByZiadFooter()),
@@ -397,7 +398,7 @@ class ProfileTab extends ConsumerWidget {
                 ref.read(authNotifierProvider.notifier).logout();
               },
               icon: const Icon(Icons.logout_outlined),
-              label: const Text('Sign Out'),
+              label: Text(strings.signOut),
             ),
           ),
         ],

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 
 class AppLogo extends StatelessWidget {
   const AppLogo({
@@ -20,36 +20,26 @@ class AppLogo extends StatelessWidget {
     final txtColor =
         textColor ?? (isLight ? AppColors.dark : AppColors.surfaceLight);
 
-    // The SVG is 300×200 so we clip it to a square by centering on the wide axis
     final iconWidget = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isLight ? AppColors.primary : AppColors.accent,
         borderRadius: BorderRadius.circular(size * 0.28),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.22),
+            color: (isLight ? AppColors.primary : AppColors.accent)
+                .withValues(alpha: 0.25),
             blurRadius: size * 0.28,
             offset: Offset(0, size * 0.1),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(size * 0.28),
-        child: OverflowBox(
-          maxWidth: double.infinity,
-          maxHeight: double.infinity,
-          child: SizedBox(
-            // Scale the 300×200 SVG so its height fills our square
-            width: size * 1.5,
-            height: size,
-            child: SvgPicture.asset(
-              'assets/icon/Group.svg',
-              fit: BoxFit.contain,
-            ),
-          ),
-        ),
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.checkroom_rounded,
+        size: size * 0.52,
+        color: isLight ? AppColors.onPrimary : AppColors.dark,
       ),
     );
 
@@ -63,9 +53,10 @@ class AppLogo extends StatelessWidget {
         Text(
           'BOUTIQUE STORE',
           style: TextStyle(
-            fontSize: size * 0.28,
+            fontFamily: AppTheme.fontFamily,
+            fontSize: size * 0.24,
             fontWeight: FontWeight.w800,
-            letterSpacing: 1.6,
+            letterSpacing: 2.0,
             color: txtColor,
           ),
         ),
@@ -73,7 +64,8 @@ class AppLogo extends StatelessWidget {
         Text(
           'Gestion & Vente de Vêtements',
           style: TextStyle(
-            fontSize: size * 0.16,
+            fontFamily: AppTheme.fontFamily,
+            fontSize: size * 0.15,
             fontWeight: FontWeight.w500,
             letterSpacing: 0.5,
             color: isLight ? AppColors.gray600 : AppColors.gray400,
@@ -83,3 +75,4 @@ class AppLogo extends StatelessWidget {
     );
   }
 }
+

@@ -34,15 +34,84 @@ class AppStrings {
   String get week => isFrench ? 'Semaine' : 'Week';
   String get month => isFrench ? 'Mois' : 'Month';
   String get pickMonth => isFrench ? 'Choisir mois' : 'Pick month';
+  String get monthLabel => isFrench ? 'Mois' : 'Month';
+  String get yearLabel => isFrench ? 'Année' : 'Year';
+  String get thisWeek => isFrench ? 'Cette semaine' : 'This week';
+  String get thisMonth => isFrench ? 'Ce mois-ci' : 'This month';
   String get range => isFrench ? 'Période' : 'Range';
   String get all => isFrench ? 'Tout' : 'All';
   String get debts => isFrench ? 'Dettes' : 'Debts';
   String get allCategories => isFrench ? 'Toutes les catégories' : 'All categories';
+  String get noCategories => isFrench ? 'Aucune catégorie' : 'No categories';
   String get search => isFrench ? 'Rechercher…' : 'Search…';
+  String get refresh => isFrench ? 'Actualiser' : 'Refresh';
+  String get retry => isFrench ? 'Réessayer' : 'Retry';
+  String get couldNotLoadDashboard => isFrench
+      ? 'Impossible de charger le tableau de bord'
+      : 'Could not load dashboard';
+  List<String> get monthNames => isFrench
+      ? const [
+          'Janvier',
+          'Février',
+          'Mars',
+          'Avril',
+          'Mai',
+          'Juin',
+          'Juillet',
+          'Août',
+          'Septembre',
+          'Octobre',
+          'Novembre',
+          'Décembre',
+        ]
+      : const [
+          'January',
+          'February',
+          'March',
+          'April',
+          'May',
+          'June',
+          'July',
+          'August',
+          'September',
+          'October',
+          'November',
+          'December',
+        ];
+  List<String> get shortMonthNames => isFrench
+      ? const [
+          'Janv',
+          'Févr',
+          'Mars',
+          'Avr',
+          'Mai',
+          'Juin',
+          'Juil',
+          'Août',
+          'Sept',
+          'Oct',
+          'Nov',
+          'Déc',
+        ]
+      : const [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ];
 
   // ── Products ────────────────────────────────────────────────────
   String get products => isFrench ? 'Produits' : 'Products';
   String get editProduct => isFrench ? 'Modifier le produit' : 'Edit product';
+  String get changeCategory => isFrench ? 'Changer de catégorie' : 'Change Category';
   String get productName => isFrench ? 'Nom du produit' : 'Product name';
   String get category => isFrench ? 'Catégorie' : 'Category';
   String get selectCategory => isFrench ? 'Sélectionner une catégorie' : 'Select a category';
@@ -119,18 +188,50 @@ class AppStrings {
       ? 'Appui long pour supprimer une vente'
       : 'Long press a sale to delete';
 
+  // ── Auth & Login ───────────────────────────────────────────────
+  String get welcomeBack => isFrench ? 'Bon retour' : 'Welcome back';
+  String get signInPrompt => isFrench ? 'Connectez-vous pour gérer votre boutique.' : 'Sign in to manage your store.';
+  String get username => isFrench ? 'Nom d\'utilisateur' : 'Username';
+  String get password => isFrench ? 'Mot de passe' : 'Password';
+  String get signIn => isFrench ? 'Se connecter' : 'Sign In';
+  String get continueAsGuest => isFrench ? 'Continuer en tant qu\'invité' : 'Continue as Guest';
+  String get usernameRequired => isFrench ? 'Veuillez saisir votre nom d\'utilisateur' : 'Please enter your username';
+  String get passwordRequired => isFrench ? 'Veuillez saisir votre mot de passe' : 'Please enter your password';
+  String get inventoryAndSales => isFrench ? 'Gestion & Ventes' : 'Inventory & sales';
+
   // ── Profile & Settings ──────────────────────────────────────────
+  String get profile => isFrench ? 'Profil' : 'Profile';
   String get store => isFrench ? 'Boutique' : 'Store';
+  String get appSection => isFrench ? 'Application' : 'App';
   String get appSettings => isFrench ? 'Paramètres de l\'application' : 'App Settings';
   String get theme => isFrench ? 'Thème' : 'Theme';
   String get language => isFrench ? 'Langue' : 'Language';
+  String get languageLabel => isFrench ? 'Langue' : 'Language / Langue';
+  String get themeSubtitle => isFrench ? 'Clair, sombre ou système' : 'Light, dark, or system';
   String get about => isFrench ? 'À propos' : 'About';
+  String get appInfo => isFrench ? 'Informations sur l\'application' : 'App info';
   String get signOut => isFrench ? 'Se déconnecter' : 'Sign Out';
   String get signOutConfirm => isFrench
       ? 'Êtes-vous sûr de vouloir vous déconnecter ?'
       : 'Are you sure you want to sign out?';
   String get productsInventory => isFrench ? 'Inventaire des produits' : 'Products inventory';
+  String get browseAndManageStock => isFrench ? 'Parcourir et gérer le stock' : 'Browse and manage stock';
   String get lowStockAlerts => isFrench ? 'Alertes stock faible' : 'Low stock alerts';
+  String get itemsRunningLow => isFrench ? 'Articles bientôt épuisés' : 'Items running low';
+  String get displayName => isFrench ? 'Nom d\'affichage' : 'Display name';
+  String get yourName => isFrench ? 'Votre nom' : 'Your name';
+  String get displayNameHelper => isFrench
+      ? 'Affiché dans l\'application. L\'identifiant de connexion reste le même.'
+      : 'Shown in the app. Login username stays the same.';
+  String get nameUpdated => isFrench ? 'Nom mis à jour' : 'Name updated';
+  String get photoUpdated => isFrench ? 'Photo mise à jour' : 'Photo updated';
+  String get aboutDescription => isFrench
+      ? 'Gestion des stocks et des ventes pour boutique de vêtements.'
+      : 'Inventory and sales management for a small clothing shop.';
+  String get loginLabel => isFrench ? 'Identifiant : ' : 'Login: ';
+  String get signedOutStatus => isFrench ? 'Déconnecté' : 'Signed out';
+  String get save => isFrench ? 'Enregistrer' : 'Save';
+  String get apply => isFrench ? 'Appliquer' : 'Apply';
   String get english => 'English 🇬🇧';
   String get french => 'Français 🇫🇷';
   String get systemDefault => isFrench ? 'Système par défaut' : 'System default';

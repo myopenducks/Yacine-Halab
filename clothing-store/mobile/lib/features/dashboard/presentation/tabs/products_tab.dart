@@ -78,11 +78,12 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
   }
 
   Future<void> _showCategoryPicker(List<Category> categories) async {
+    final strings = ref.read(appStringsProvider);
     final selectedId = await showDialog<int>(
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: const Text('Change Category'),
+          title: Text(strings.changeCategory),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -100,7 +101,7 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(strings.cancel),
             ),
           ],
         );
@@ -116,11 +117,23 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
          if (mounted) {
            _toggleSelectionMode(null);
            refreshAfterInventoryChange(ref);
-           showAppSnackBar(context, 'Products updated successfully', kind: AppSnackKind.success);
+           showAppSnackBar(
+             context,
+             strings.isFrench
+                 ? 'Produits mis à jour avec succès'
+                 : 'Products updated successfully',
+             kind: AppSnackKind.success,
+           );
          }
        } catch (e) {
          if (mounted) {
-           showAppSnackBar(context, 'Failed to update products', kind: AppSnackKind.error);
+           showAppSnackBar(
+             context,
+             strings.isFrench
+                 ? 'Échec de la mise à jour des produits'
+                 : 'Failed to update products',
+             kind: AppSnackKind.error,
+           );
          }
        }
     }
@@ -135,11 +148,15 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
     final categoriesAsync = ref.watch(categoriesProvider);
     final strings = ref.watch(appStringsProvider);
 
+    final selectionTitle = strings.isFrench
+        ? '${_selectedIds.length} sélectionné(s)'
+        : '${_selectedIds.length} selected';
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(
-          _selectionMode ? '${_selectedIds.length} selected' : strings.products,
+          _selectionMode ? selectionTitle : strings.products,
           style: theme.textTheme.headlineSmall,
         ),
         actions: [
@@ -305,13 +322,19 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
                   height: 56,
                   child: FilledButton.icon(
                     icon: const Icon(Icons.category_outlined),
-                    label: const Text('Change Category'),
+                    label: Text(strings.changeCategory),
                     onPressed: () {
                       final cats = ref.read(categoriesProvider).valueOrNull;
                       if (cats != null) {
                         _showCategoryPicker(cats);
                       } else {
-                        showAppSnackBar(context, 'Categories not loaded', kind: AppSnackKind.error);
+                        showAppSnackBar(
+                          context,
+                          strings.isFrench
+                              ? 'Catégories non chargées'
+                              : 'Categories not loaded',
+                          kind: AppSnackKind.error,
+                        );
                       }
                     },
                   ),

@@ -151,13 +151,20 @@ class SaleDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _quickMarkPaid(BuildContext context, WidgetRef ref, SaleDetail sale) async {
+    final strings = ref.read(appStringsProvider);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: Text('Settle Entire Debt for Sale #${sale.id}?'),
+          title: Text(
+            strings.isFrench
+                ? 'Régler la totalité de la dette #${sale.id} ?'
+                : 'Settle Entire Debt for Sale #${sale.id}?',
+          ),
           content: Text(
-            'Remaining due is ${formatDAAmount(sale.remainingAmount)}.\nMark this sale as fully paid?',
+            strings.isFrench
+                ? 'Le montant restant dû est de ${formatDAAmount(sale.remainingAmount)}.\nMarquer cette vente comme entièrement réglée ?'
+                : 'Remaining due is ${formatDAAmount(sale.remainingAmount)}.\nMark this sale as fully paid?',
           ),
           actions: [
             Row(
@@ -167,7 +174,7 @@ class SaleDetailScreen extends ConsumerWidget {
                     height: 44,
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Cancel'),
+                      child: Text(strings.cancel),
                     ),
                   ),
                 ),
@@ -179,7 +186,7 @@ class SaleDetailScreen extends ConsumerWidget {
                     child: FilledButton(
                       style: FilledButton.styleFrom(backgroundColor: AppColors.success),
                       onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Mark Fully Paid'),
+                      child: Text(strings.markFullyPaid),
                     ),
                   ),
                 ),
@@ -195,7 +202,7 @@ class SaleDetailScreen extends ConsumerWidget {
         await ref.read(saleServiceProvider).recordPayment(
               sale.id,
               sale.remainingAmount,
-              note: 'Full settlement',
+              note: strings.isFrench ? 'Règlement total' : 'Full settlement',
             );
         ref.invalidate(saleByIdProvider(sale.id));
         refreshAfterInventoryChange(ref);
@@ -337,7 +344,7 @@ class SaleDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: () => ref.invalidate(saleByIdProvider(saleId)),
-                  child: const Text('Retry'),
+                  child: Text(strings.retry),
                 ),
               ],
             ),

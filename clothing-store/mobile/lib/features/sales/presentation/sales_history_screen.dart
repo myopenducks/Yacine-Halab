@@ -194,13 +194,20 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
   }
 
   Future<void> _quickMarkPaid(SaleHeader sale) async {
+    final strings = ref.read(appStringsProvider);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: Text('Mark Sale #${sale.id} as Finished?'),
+          title: Text(
+            strings.isFrench
+                ? 'Clôturer la vente #${sale.id} ?'
+                : 'Mark Sale #${sale.id} as Finished?',
+          ),
           content: Text(
-            'Remaining due is ${formatDAAmount(sale.remainingAmount)}.\nDo you want to mark this sale as fully paid?',
+            strings.isFrench
+                ? 'Le reste dû est de ${formatDAAmount(sale.remainingAmount)}.\nVoulez-vous marquer cette vente comme entièrement réglée ?'
+                : 'Remaining due is ${formatDAAmount(sale.remainingAmount)}.\nDo you want to mark this sale as fully paid?',
           ),
           actions: [
             Row(
@@ -210,7 +217,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
                     height: 44,
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Cancel'),
+                      child: Text(strings.cancel),
                     ),
                   ),
                 ),
@@ -222,7 +229,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
                     child: FilledButton(
                       style: FilledButton.styleFrom(backgroundColor: AppColors.success),
                       onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Mark as Fully Paid'),
+                      child: Text(strings.markFullyPaid),
                     ),
                   ),
                 ),
@@ -238,14 +245,16 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
         await ref.read(saleServiceProvider).recordPayment(
               sale.id,
               sale.remainingAmount,
-              note: 'Full settlement',
+              note: strings.isFrench ? 'Règlement total' : 'Full settlement',
             );
         ref.invalidate(saleByIdProvider(sale.id));
         refreshAfterInventoryChange(ref);
         if (mounted) {
           showAppSnackBar(
             context,
-            'Sale #${sale.id} marked as fully paid!',
+            strings.isFrench
+                ? 'Vente #${sale.id} marquée comme entièrement réglée !'
+                : 'Sale #${sale.id} marked as fully paid!',
             kind: AppSnackKind.success,
           );
         }
@@ -270,7 +279,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Text('Sales history', style: theme.textTheme.headlineSmall),
+        title: Text(strings.salesHistory, style: theme.textTheme.headlineSmall),
         actions: [
           if (list.total > 0)
             Padding(
@@ -283,7 +292,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    '${list.total} sales',
+                    strings.isFrench ? '${list.total} ventes' : '${list.total} sales',
                     style: TextStyle(
                       fontFamily: AppTheme.fontFamily,
                       fontWeight: FontWeight.w700,

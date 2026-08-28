@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_branding.dart';
 import '../auth_provider.dart';
 
@@ -57,6 +57,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final strings = ref.watch(appStringsProvider);
     final authState = ref.watch(authNotifierProvider);
     final error = authState.error;
     final isLight = theme.brightness == Brightness.light;
@@ -77,15 +78,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Spacer(flex: 2),
-                  _HeroBrand(isLight: isLight),
+                  _HeroBrand(isLight: isLight, subtitle: strings.inventoryAndSales),
                   const SizedBox(height: 44),
                   Text(
-                    'Welcome back',
+                    strings.welcomeBack,
                     style: theme.textTheme.displayMedium,
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Sign in to manage your store.',
+                    strings.signInPrompt,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: isLight ? AppColors.gray500 : AppColors.gray400,
                     ),
@@ -99,14 +100,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onFieldSubmitted: (_) {
                       FocusScope.of(context).requestFocus(_passwordFocus);
                     },
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.person_outline),
-                      hintText: 'Username',
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.person_outline),
+                      hintText: strings.username,
                     ),
                     style: theme.textTheme.bodyLarge,
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) {
-                        return 'Please enter your username';
+                        return strings.usernameRequired;
                       }
                       return null;
                     },
@@ -122,7 +123,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onFieldSubmitted: (_) => _submit(),
                     decoration: InputDecoration(
                       prefixIcon: const Icon(Icons.lock_outline),
-                      hintText: 'Password',
+                      hintText: strings.password,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscure
@@ -134,7 +135,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     style: theme.textTheme.bodyLarge,
                     validator: (v) {
-                      if (v == null || v.isEmpty) return 'Enter your password';
+                      if (v == null || v.isEmpty) return strings.passwordRequired;
                       if (v.length < 4) return 'At least 4 characters';
                       return null;
                     },
@@ -156,7 +157,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 strokeWidth: 2.4,
                               ),
                             )
-                          : const Text('Sign In'),
+                          : Text(strings.signIn),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -170,7 +171,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               _passwordCtrl.text = 'admin123';
                               _submit();
                             },
-                      child: const Text('Continue as Guest'),
+                      child: Text(strings.continueAsGuest),
                     ),
                   ),
                   const SizedBox(height: 22),
@@ -188,9 +189,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 }
 
 class _HeroBrand extends StatelessWidget {
-  const _HeroBrand({required this.isLight});
+  const _HeroBrand({required this.isLight, required this.subtitle});
 
   final bool isLight;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -205,15 +207,10 @@ class _HeroBrand extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
           ),
           alignment: Alignment.center,
-          child: Text(
-            'BS',
-            style: TextStyle(
-              fontFamily: AppTheme.fontFamily,
-              fontWeight: FontWeight.w800,
-              fontSize: 20,
-              letterSpacing: 0.5,
-              color: isLight ? AppColors.onPrimary : AppColors.dark,
-            ),
+          child: Icon(
+            Icons.checkroom_rounded,
+            size: 28,
+            color: isLight ? AppColors.onPrimary : AppColors.dark,
           ),
         ),
         const SizedBox(width: 14),
@@ -222,7 +219,7 @@ class _HeroBrand extends StatelessWidget {
           children: [
             Text('Boutique Store', style: theme.textTheme.headlineMedium),
             Text(
-              'Inventory & sales',
+              subtitle,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: isLight ? AppColors.gray500 : AppColors.gray400,
               ),

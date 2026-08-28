@@ -78,15 +78,14 @@ class DashboardHomeTab extends ConsumerWidget {
           children: [
             _PeriodToggle(
               filter: filter,
+              strings: strings,
               onPeriod: (p) =>
                   ref.read(dashboardFilterProvider.notifier).setPeriod(p),
               onPickMonth: () => _pickMonth(context, ref, filter),
             ),
             const SizedBox(height: 22),
             Text(
-              filter.period == DashboardPeriod.today
-                  ? strings.todayOverview
-                  : filter.overviewTitle,
+              _getOverviewTitle(filter, strings),
               style: theme.textTheme.headlineSmall,
             ),
             const SizedBox(height: 14),
@@ -94,9 +93,10 @@ class DashboardHomeTab extends ConsumerWidget {
               loading: () => const _KpiSkeleton(),
               error: (e, _) => _ErrorBanner(
                 message: '$e',
+                strings: strings,
                 onRetry: () => refreshDashboard(ref),
               ),
-              data: (s) => _KpiGrid(summary: s),
+              data: (s) => _KpiGrid(summary: s, strings: strings),
             ),
             const SizedBox(height: 22),
             Text(strings.stockByCategory, style: theme.textTheme.headlineSmall),
@@ -104,16 +104,35 @@ class DashboardHomeTab extends ConsumerWidget {
             summaryAsync.when(
               loading: () => const _CategorySkeleton(),
               error: (_, __) => const SizedBox.shrink(),
-              data: (s) => _CategoryStockList(items: s.categoryQuantities),
+              data: (s) => _CategoryStockList(items: s.categoryQuantities, strings: strings),
             ),
             const SizedBox(height: 26),
             Text(strings.quickActions, style: theme.textTheme.headlineSmall),
             const SizedBox(height: 14),
-            const _QuickActions(),
+            _QuickActions(strings: strings),
           ],
         ),
       ),
     );
+  }
+
+  String _getOverviewTitle(DashboardFilter filter, AppStrings strings) {
+    switch (filter.period) {
+      case DashboardPeriod.today:
+        return strings.todayOverview;
+      case DashboardPeriod.week:
+        return strings.thisWeek;
+      case DashboardPeriod.month:
+        return strings.thisMonth;
+      case DashboardPeriod.custom:
+        final m = filter.customMonth;
+        final y = filter.customYear;
+        if (m != null && y != null && m >= 1 && m <= 12) {
+          final monthName = strings.shortMonthNames[m - 1];
+          return '$monthName $y';
+        }
+        return strings.range;
+    }
   }
 
   String _initials(String name) {
@@ -130,6 +149,7 @@ class DashboardHomeTab extends ConsumerWidget {
     WidgetRef ref,
     DashboardFilter filter,
   ) async {
+    final strings = ref.read(appStringsProvider);
     final now = DateTime.now();
     var month = filter.customMonth ?? now.month;
     var year = filter.customYear ?? now.year;
@@ -140,31 +160,17 @@ class DashboardHomeTab extends ConsumerWidget {
         return StatefulBuilder(
           builder: (ctx, setLocal) {
             return AlertDialog(
-              title: const Text('Pick month'),
+              title: Text(strings.pickMonth),
               content: Row(
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<int>(
                       initialValue: month,
-                      decoration: const InputDecoration(labelText: 'Month'),
+                      decoration: InputDecoration(labelText: strings.monthLabel),
                       items: List.generate(12, (i) {
-                        const names = [
-                          'January',
-                          'February',
-                          'March',
-                          'April',
-                          'May',
-                          'June',
-                          'July',
-                          'August',
-                          'September',
-                          'October',
-                          'November',
-                          'December',
-                        ];
                         return DropdownMenuItem(
                           value: i + 1,
-                          child: Text(names[i]),
+                          child: Text(strings.monthNames[i]),
                         );
                       }),
                       onChanged: (v) {
@@ -176,7 +182,7 @@ class DashboardHomeTab extends ConsumerWidget {
                   Expanded(
                     child: DropdownButtonFormField<int>(
                       initialValue: year,
-                      decoration: const InputDecoration(labelText: 'Year'),
+                      decoration: InputDecoration(labelText: strings.yearLabel),
                       items: List.generate(6, (i) {
                         final y = now.year - 2 + i;
                         return DropdownMenuItem(
@@ -194,12 +200,12 @@ class DashboardHomeTab extends ConsumerWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
+                  child: Text(strings.cancel),
                 ),
                 FilledButton(
                   onPressed: () =>
                       Navigator.pop(ctx, (month: month, year: year)),
-                  child: const Text('Apply'),
+                  child: Text(strings.apply),
                 ),
               ],
             );
@@ -219,11 +225,13 @@ class DashboardHomeTab extends ConsumerWidget {
 class _PeriodToggle extends StatelessWidget {
   const _PeriodToggle({
     required this.filter,
+    required this.strings,
     required this.onPeriod,
     required this.onPickMonth,
   });
 
   final DashboardFilter filter;
+  final AppStrings strings;
   final ValueChanged<DashboardPeriod> onPeriod;
   final VoidCallback onPickMonth;
 
@@ -232,31 +240,40 @@ class _PeriodToggle extends StatelessWidget {
     final isLight = Theme.of(context).brightness == Brightness.light;
     final customActive = filter.period == DashboardPeriod.custom;
 
+    String customLabel = strings.pickMonth;
+    if (customActive && filter.customMonth != null && filter.customYear != null) {
+      final m = filter.customMonth!;
+      final y = filter.customYear!;
+      if (m >= 1 && m <= 12) {
+        customLabel = '${strings.shortMonthNames[m - 1]} $y';
+      }
+    }
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       clipBehavior: Clip.none,
       child: Row(
         children: [
           _PeriodChip(
-            label: 'Today',
+            label: strings.today,
             selected: filter.period == DashboardPeriod.today,
             onTap: () => onPeriod(DashboardPeriod.today),
           ),
           const SizedBox(width: 8),
           _PeriodChip(
-            label: 'Week',
+            label: strings.week,
             selected: filter.period == DashboardPeriod.week,
             onTap: () => onPeriod(DashboardPeriod.week),
           ),
           const SizedBox(width: 8),
           _PeriodChip(
-            label: 'Month',
+            label: strings.month,
             selected: filter.period == DashboardPeriod.month,
             onTap: () => onPeriod(DashboardPeriod.month),
           ),
           const SizedBox(width: 8),
           _PeriodChip(
-            label: customActive ? filter.overviewTitle : 'Pick month',
+            label: customLabel,
             selected: customActive,
             icon: Icons.calendar_month_outlined,
             onTap: onPickMonth,
@@ -358,9 +375,10 @@ class _PeriodChip extends StatelessWidget {
 }
 
 class _KpiGrid extends StatelessWidget {
-  const _KpiGrid({required this.summary});
+  const _KpiGrid({required this.summary, required this.strings});
 
   final DashboardSummary summary;
+  final AppStrings strings;
 
   @override
   Widget build(BuildContext context) {
@@ -373,22 +391,22 @@ class _KpiGrid extends StatelessWidget {
       childAspectRatio: 1.4,
       children: [
         KpiCard(
-          title: 'Sales',
+          title: strings.sales,
           value: formatDAAmount(summary.revenue),
           icon: Icons.attach_money_rounded,
         ),
         KpiCard(
-          title: 'Profit',
+          title: strings.profit,
           value: formatDAAmount(summary.profit),
           icon: Icons.trending_up_rounded,
         ),
         KpiCard(
-          title: 'Items sold',
+          title: strings.itemsSold,
           value: '${summary.itemsSold}',
           icon: Icons.shopping_bag_outlined,
         ),
         KpiCard(
-          title: 'Low stock',
+          title: strings.lowStock,
           value: '${summary.lowStockCount}',
           icon: Icons.warning_amber_rounded,
           highlight: summary.lowStockCount > 0,
@@ -431,9 +449,10 @@ class _KpiSkeleton extends StatelessWidget {
 }
 
 class _CategoryStockList extends StatelessWidget {
-  const _CategoryStockList({required this.items});
+  const _CategoryStockList({required this.items, required this.strings});
 
   final List<CategoryQuantity> items;
+  final AppStrings strings;
 
   @override
   Widget build(BuildContext context) {
@@ -442,7 +461,7 @@ class _CategoryStockList extends StatelessWidget {
 
     if (items.isEmpty) {
       return Text(
-        'No categories',
+        strings.noCategories,
         style: theme.textTheme.bodyMedium?.copyWith(
           color: isLight ? AppColors.gray500 : AppColors.gray400,
         ),
@@ -509,10 +528,15 @@ class _CategoryStockList extends StatelessWidget {
 }
 
 class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner({required this.message, required this.onRetry});
+  const _ErrorBanner({
+    required this.message,
+    required this.onRetry,
+    required this.strings,
+  });
 
   final String message;
   final VoidCallback onRetry;
+  final AppStrings strings;
 
   @override
   Widget build(BuildContext context) {
@@ -526,14 +550,14 @@ class _ErrorBanner extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Could not load dashboard',
-            style: TextStyle(fontWeight: FontWeight.w700),
+          Text(
+            strings.couldNotLoadDashboard,
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
           Text(message),
           const SizedBox(height: 10),
-          TextButton(onPressed: onRetry, child: const Text('Retry')),
+          TextButton(onPressed: onRetry, child: Text(strings.retry)),
         ],
       ),
     );
@@ -613,23 +637,25 @@ class _Avatar extends StatelessWidget {
 }
 
 class _QuickActions extends StatelessWidget {
-  const _QuickActions();
+  const _QuickActions({required this.strings});
+
+  final AppStrings strings;
 
   @override
   Widget build(BuildContext context) {
     final actions = [
       (
-        label: 'New Sale',
+        label: strings.newSale,
         icon: Icons.point_of_sale_outlined,
         onTap: () => GoRouter.of(context).go(AppRouteNames.homeCartPath),
       ),
       (
-        label: 'Products',
+        label: strings.navProducts,
         icon: Icons.inventory_2_outlined,
         onTap: () => GoRouter.of(context).go(AppRouteNames.homeProductsPath),
       ),
       (
-        label: 'History',
+        label: strings.navHistory,
         icon: Icons.receipt_long_outlined,
         onTap: () => GoRouter.of(context).go(AppRouteNames.homeHistoryPath),
       ),
@@ -637,7 +663,7 @@ class _QuickActions extends StatelessWidget {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 4,
+      crossAxisCount: 3,
       mainAxisSpacing: 16,
       crossAxisSpacing: 12,
       children: actions
