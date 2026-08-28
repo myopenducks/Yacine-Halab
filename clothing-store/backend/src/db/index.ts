@@ -8,6 +8,7 @@ export * from './schema/categories';
 export * from './schema/products';
 export * from './schema/sales';
 export * from './schema/sale-items';
+export * from './schema/expenses';
 
 export type AppDb = MySql2Database<typeof schema>;
 

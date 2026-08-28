@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/providers/settings_provider.dart';
 import '../../../../core/routes/app_router.dart';
@@ -11,8 +12,10 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/money.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../products/providers/products_provider.dart';
 import '../../models/dashboard.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../services/dashboard_service.dart';
 import '../widgets/kpi_card.dart';
 
 class DashboardHomeTab extends ConsumerWidget {
@@ -96,7 +99,7 @@ class DashboardHomeTab extends ConsumerWidget {
                 strings: strings,
                 onRetry: () => refreshDashboard(ref),
               ),
-              data: (s) => _KpiGrid(summary: s, strings: strings),
+              data: (s) => _KpiGrid(summary: s, strings: strings, filter: filter),
             ),
             const SizedBox(height: 22),
             Text(strings.stockByCategory, style: theme.textTheme.headlineSmall),
@@ -374,42 +377,83 @@ class _PeriodChip extends StatelessWidget {
   }
 }
 
-class _KpiGrid extends StatelessWidget {
-  const _KpiGrid({required this.summary, required this.strings});
+class _KpiGrid extends ConsumerWidget {
+  const _KpiGrid({
+    required this.summary,
+    required this.strings,
+    required this.filter,
+  });
 
   final DashboardSummary summary;
   final AppStrings strings;
+  final DashboardFilter filter;
+
+  void _openSoldItems(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _SoldItemsSheet(filter: filter),
+    );
+  }
+
+  void _openLowStock(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => const _LowStockSheet(),
+    );
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.4,
+      childAspectRatio: 1.35,
       children: [
         KpiCard(
-          title: strings.sales,
+          title: strings.revenue,
           value: formatDAAmount(summary.revenue),
-          icon: Icons.attach_money_rounded,
+          icon: Icons.point_of_sale_outlined,
+          onTap: () => GoRouter.of(context).go(AppRouteNames.homeHistoryPath),
         ),
         KpiCard(
-          title: strings.profit,
-          value: formatDAAmount(summary.profit),
+          title: strings.netProfit,
+          value: formatDAAmount(summary.netProfit),
           icon: Icons.trending_up_rounded,
+          onTap: () => context.push(AppRouteNames.expensesPath),
         ),
         KpiCard(
           title: strings.itemsSold,
           value: '${summary.itemsSold}',
           icon: Icons.shopping_bag_outlined,
+          onTap: () => _openSoldItems(context, ref),
         ),
         KpiCard(
           title: strings.lowStock,
           value: '${summary.lowStockCount}',
           icon: Icons.warning_amber_rounded,
           highlight: summary.lowStockCount > 0,
+          onTap: () => _openLowStock(context, ref),
+        ),
+        KpiCard(
+          title: strings.totalExpenses,
+          value: formatDAAmount(summary.expenses),
+          icon: Icons.receipt_long_outlined,
+          highlight: summary.expenses > 0,
+          onTap: () => context.push(AppRouteNames.expensesPath),
+        ),
+        KpiCard(
+          title: strings.customerDebts,
+          value: formatDAAmount(summary.totalUnpaidDebtDA),
+          icon: Icons.pending_actions_rounded,
+          highlight: summary.totalUnpaidDebtDA > 0,
+          onTap: () => context.push(AppRouteNames.debtsPath),
         ),
       ],
     );
@@ -429,7 +473,7 @@ class _KpiSkeleton extends StatelessWidget {
       crossAxisSpacing: 12,
       childAspectRatio: 1.35,
       children: List.generate(
-        4,
+        6,
         (_) => Container(
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
@@ -443,6 +487,377 @@ class _KpiSkeleton extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ─── Sold Items Detail Bottom Sheet ──────────────────────────────────────────
+
+class _SoldItemsSheet extends ConsumerWidget {
+  const _SoldItemsSheet({required this.filter});
+
+  final DashboardFilter filter;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final strings = ref.watch(appStringsProvider);
+    final query = DashboardQuery(
+      period: filter.period,
+      month: filter.customMonth,
+      year: filter.customYear,
+    );
+
+    final soldItemsFuture = ref.watch(dashboardServiceProvider).getSoldItems(query);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isLight ? AppColors.white : const Color(0xFF2A2319),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: const EdgeInsets.fromLTRB(22, 14, 22, 32),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.80,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isLight ? AppColors.gray200 : AppColors.gray700,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.shopping_bag_outlined, color: AppColors.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  strings.soldItemsBreakdown,
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isLight ? AppColors.dark : Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Expanded(
+            child: FutureBuilder<List<SoldItemDetail>>(
+              future: soldItemsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                final items = snapshot.data ?? [];
+                if (items.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.inventory_2_outlined, size: 48, color: isLight ? AppColors.gray300 : AppColors.gray700),
+                        const SizedBox(height: 12),
+                        Text(
+                          strings.noSoldItems,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: isLight ? AppColors.gray500 : AppColors.gray400,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final totalQty = items.fold<int>(0, (s, i) => s + i.quantitySold);
+                final totalRev = items.fold<int>(0, (s, i) => s + i.totalRevenue);
+
+                return ListView(
+                  children: [
+                    // Summary sub-header
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isLight ? AppColors.gray100 : AppColors.gray800,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '$totalQty ${strings.itemsCount}',
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                          ),
+                          Text(
+                            formatDAAmount(totalRev),
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.success),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    ...items.map((item) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isLight ? AppColors.white : AppColors.gray900,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: isLight ? AppColors.gray200 : AppColors.gray800),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.checkroom_outlined, size: 20, color: AppColors.primary),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.productName,
+                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    '${item.categoryName} • ${formatDAAmount(item.averagePrice)}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isLight ? AppColors.gray500 : AppColors.gray400,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accent.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    'x ${item.quantitySold}',
+                                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.primary),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  formatDAAmount(item.totalRevenue),
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Low Stock Items Bottom Sheet ────────────────────────────────────────────
+
+class _LowStockSheet extends ConsumerWidget {
+  const _LowStockSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final strings = ref.watch(appStringsProvider);
+    final productsState = ref.watch(productsListProvider);
+
+    // Filter low stock products (qty <= 5)
+    final lowStockItems = productsState.items.where((p) => p.isLowStock).toList();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isLight ? AppColors.white : const Color(0xFF2A2319),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: const EdgeInsets.fromLTRB(22, 14, 22, 32),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.80,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isLight ? AppColors.gray200 : AppColors.gray700,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  strings.lowStockItems,
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isLight ? AppColors.dark : Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Expanded(
+            child: lowStockItems.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.check_circle_outline_rounded, size: 48, color: AppColors.success),
+                        const SizedBox(height: 12),
+                        Text(
+                          strings.allInStock,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: isLight ? AppColors.gray600 : AppColors.gray300,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView(
+                    children: lowStockItems.map((prod) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isLight ? AppColors.white : AppColors.gray900,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.warning.withValues(alpha: 0.35),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: AppColors.warning.withValues(alpha: 0.10),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.inventory_2_outlined, color: AppColors.warning, size: 22),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    prod.name,
+                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    '${prod.categoryName} • ${formatDAAmount(prod.sellingPrice)}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isLight ? AppColors.gray500 : AppColors.gray400,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: prod.quantity == 0
+                                        ? AppColors.danger.withValues(alpha: 0.12)
+                                        : AppColors.warning.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(99),
+                                  ),
+                                  child: Text(
+                                    prod.quantity == 0
+                                        ? (strings.isFrench ? 'Épuisé' : 'Out of stock')
+                                        : '${prod.quantity} ${strings.isFrench ? "restants" : "left"}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 12,
+                                      color: prod.quantity == 0 ? AppColors.danger : AppColors.warning,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined, size: 20),
+                              onPressed: () {
+                                Navigator.pop(context);
+                                context.push(AppRouteNames.productEditPath(prod.id));
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -646,8 +1061,18 @@ class _QuickActions extends StatelessWidget {
     final actions = [
       (
         label: strings.newSale,
-        icon: Icons.point_of_sale_outlined,
+        icon: Icons.add_shopping_cart_rounded,
         onTap: () => GoRouter.of(context).go(AppRouteNames.homeCartPath),
+      ),
+      (
+        label: strings.myExpenses,
+        icon: Icons.account_balance_wallet_outlined,
+        onTap: () => context.push(AppRouteNames.expensesPath),
+      ),
+      (
+        label: strings.customerDebts,
+        icon: Icons.pending_actions_rounded,
+        onTap: () => context.push(AppRouteNames.debtsPath),
       ),
       (
         label: strings.navProducts,
@@ -666,6 +1091,7 @@ class _QuickActions extends StatelessWidget {
       crossAxisCount: 3,
       mainAxisSpacing: 16,
       crossAxisSpacing: 12,
+      childAspectRatio: 0.9,
       children: actions
           .map(
             (a) => _QuickAction(label: a.label, icon: a.icon, onTap: a.onTap),

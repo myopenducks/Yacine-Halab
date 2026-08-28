@@ -341,9 +341,9 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
       appBar: AppBar(
         title: Text(strings.salesHistory, style: theme.textTheme.headlineSmall),
         actions: [
-          if (list.total > 0)
+          if (list.total > 0) ...[
             Padding(
-              padding: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.only(right: 6),
               child: Center(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -363,6 +363,13 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
                 ),
               ),
             ),
+            IconButton(
+              tooltip: strings.clearHistory,
+              icon: const Icon(Icons.delete_sweep_outlined, color: AppColors.debtRed),
+              onPressed: _confirmClearHistory,
+            ),
+            const SizedBox(width: 6),
+          ],
         ],
       ),
       body: Column(
@@ -549,6 +556,146 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
       showAppSnackBar(context, strings.saleDeleted, kind: AppSnackKind.success);
     } else {
       showAppSnackBar(context, 'Failed to delete sale', kind: AppSnackKind.error);
+    }
+  }
+
+  Future<void> _confirmClearHistory() async {
+    final strings = ref.read(appStringsProvider);
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    var restock = true;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: isLight ? AppColors.white : AppColors.gray900,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppColors.debtRed.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.delete_sweep_rounded,
+                    color: AppColors.debtRed,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  strings.clearHistory,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 19,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  strings.clearHistoryConfirm,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 14,
+                    color: isLight ? AppColors.textMuted : AppColors.textMutedDark,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                InkWell(
+                  onTap: () => setDialogState(() => restock = !restock),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                    child: Row(
+                      children: [
+                        Checkbox(
+                          value: restock,
+                          activeColor: AppColors.primary,
+                          onChanged: (v) => setDialogState(() => restock = v ?? true),
+                        ),
+                        Expanded(
+                          child: Text(
+                            strings.restockCheckbox,
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: isLight ? AppColors.border : AppColors.borderDark, width: 1.2),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            foregroundColor: isLight ? AppColors.dark : AppColors.onDark,
+                          ),
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          child: Text(
+                            strings.cancel,
+                            style: const TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.debtRed,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          child: Text(
+                            strings.clearHistory,
+                            style: const TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final success = await ref.read(salesListProvider.notifier).clearHistory(restock: restock);
+    if (!mounted) return;
+    if (success) {
+      refreshAfterInventoryChange(ref);
+      showAppSnackBar(context, strings.historyCleared, kind: AppSnackKind.success);
+    } else {
+      showAppSnackBar(context, 'Failed to clear sales history', kind: AppSnackKind.error);
     }
   }
 

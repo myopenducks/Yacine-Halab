@@ -60,4 +60,12 @@ export function registerSaleRoutes(
       return reply.status(200).send(result);
     },
   );
+
+  app.delete(
+    '/api/v1/sales/history/clear',
+    async (req, reply) => {
+      const result = await handler.clearHistory(req);
+      return reply.status(200).send(result);
+    },
+  );
 }

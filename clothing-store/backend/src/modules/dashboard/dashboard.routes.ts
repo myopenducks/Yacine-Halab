@@ -20,4 +20,12 @@ export function registerDashboardRoutes(
       return reply.status(200).send(result);
     },
   );
+
+  app.get(
+    '/api/v1/dashboard/sold-items',
+    async (req, reply) => {
+      const result = await handler.soldItems(req);
+      return reply.status(200).send(result);
+    },
+  );
 }

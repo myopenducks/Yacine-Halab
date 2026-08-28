@@ -49,21 +49,36 @@ class DashboardSummary {
     required this.itemsSold,
     required this.revenue,
     required this.profit,
+    this.expenses = 0,
+    int? netRevenue,
+    int? netProfit,
     required this.lowStockCount,
+    this.unpaidDebtCount = 0,
+    this.totalUnpaidDebtDA = 0,
     required this.categoryQuantities,
-  });
+  })  : netRevenue = netRevenue ?? revenue,
+        netProfit = netProfit ?? profit;
 
   factory DashboardSummary.fromJson(Map<String, dynamic> json) {
     final rawCats = json['categoryQuantities'] as List<dynamic>? ?? const [];
+    final revenue = (json['revenue'] as num?)?.toInt() ?? 0;
+    final profit = (json['profit'] as num?)?.toInt() ?? 0;
+    final expenses = (json['expenses'] as num?)?.toInt() ?? 0;
+
     return DashboardSummary(
       period: json['period'] as String? ?? 'today',
       from: json['from'] as String? ?? '',
       to: json['to'] as String? ?? '',
       salesCount: (json['salesCount'] as num?)?.toInt() ?? 0,
       itemsSold: (json['itemsSold'] as num?)?.toInt() ?? 0,
-      revenue: (json['revenue'] as num?)?.toInt() ?? 0,
-      profit: (json['profit'] as num?)?.toInt() ?? 0,
+      revenue: revenue,
+      profit: profit,
+      expenses: expenses,
+      netRevenue: (json['netRevenue'] as num?)?.toInt() ?? (revenue - expenses),
+      netProfit: (json['netProfit'] as num?)?.toInt() ?? (profit - expenses),
       lowStockCount: (json['lowStockCount'] as num?)?.toInt() ?? 0,
+      unpaidDebtCount: (json['unpaidDebtCount'] as num?)?.toInt() ?? 0,
+      totalUnpaidDebtDA: (json['totalUnpaidDebtDA'] as num?)?.toInt() ?? 0,
       categoryQuantities: rawCats
           .map(
             (e) => CategoryQuantity.fromJson(
@@ -81,7 +96,12 @@ class DashboardSummary {
   final int itemsSold;
   final int revenue;
   final int profit;
+  final int expenses;
+  final int netRevenue;
+  final int netProfit;
   final int lowStockCount;
+  final int unpaidDebtCount;
+  final int totalUnpaidDebtDA;
   final List<CategoryQuantity> categoryQuantities;
 }
 
@@ -139,4 +159,33 @@ class DashboardChart {
     if (buckets.isEmpty) return 0;
     return buckets.map((b) => b.revenue).reduce((a, b) => a > b ? a : b);
   }
+}
+
+class SoldItemDetail {
+  SoldItemDetail({
+    required this.productId,
+    required this.productName,
+    required this.categoryName,
+    required this.quantitySold,
+    required this.totalRevenue,
+    required this.averagePrice,
+  });
+
+  factory SoldItemDetail.fromJson(Map<String, dynamic> json) {
+    return SoldItemDetail(
+      productId: (json['productId'] as num?)?.toInt() ?? 0,
+      productName: json['productName'] as String? ?? 'Product',
+      categoryName: json['categoryName'] as String? ?? 'Other',
+      quantitySold: (json['quantitySold'] as num?)?.toInt() ?? 0,
+      totalRevenue: (json['totalRevenue'] as num?)?.toInt() ?? 0,
+      averagePrice: (json['averagePrice'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  final int productId;
+  final String productName;
+  final String categoryName;
+  final int quantitySold;
+  final int totalRevenue;
+  final int averagePrice;
 }

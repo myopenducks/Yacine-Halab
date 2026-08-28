@@ -13,6 +13,8 @@ import '../../features/dashboard/presentation/tabs/history_tab.dart';
 import '../../features/dashboard/presentation/tabs/profile_tab.dart';
 import '../../features/products/presentation/product_form_screen.dart';
 import '../../features/sales/presentation/sale_detail_screen.dart';
+import '../../features/sales/presentation/debts_hub_screen.dart';
+import '../../features/expenses/presentation/expenses_screen.dart';
 
 class AppRouteNames {
   AppRouteNames._();
@@ -45,6 +47,12 @@ class AppRouteNames {
 
   static const String saleDetail = 'sale.detail';
   static String saleDetailPath(int id) => '/sales/$id';
+
+  static const String expenses = 'expenses';
+  static const String expensesPath = '/expenses';
+
+  static const String debts = 'debts';
+  static const String debtsPath = '/debts';
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -124,6 +132,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           }
           return SaleDetailScreen(saleId: id);
         },
+      ),
+      GoRoute(
+        name: AppRouteNames.expenses,
+        path: AppRouteNames.expensesPath,
+        builder: (context, state) => const ExpensesScreen(),
+      ),
+      GoRoute(
+        name: AppRouteNames.debts,
+        path: AppRouteNames.debtsPath,
+        builder: (context, state) => const DebtsHubScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

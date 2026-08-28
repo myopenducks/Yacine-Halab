@@ -98,4 +98,12 @@ class SaleService {
       dataFromJson: SaleDetail.fromJson,
     );
   }
+
+  /// Clear entire sales history
+  Future<void> clearHistory({bool restock = true}) {
+    return _dio.deleteVoid(
+      '/api/v1/sales/history/clear',
+      queryParameters: {'restock': '$restock'},
+    );
+  }
 }

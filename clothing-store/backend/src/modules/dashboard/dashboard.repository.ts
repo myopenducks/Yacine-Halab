@@ -16,6 +16,7 @@ import { categories } from '../../db/schema/categories';
 import { sales } from '../../db/schema/sales';
 import { saleItems } from '../../db/schema/sale-items';
 import { SaleRepository } from '../sales/sale.repository';
+import { ExpenseRepository } from '../expenses/expense.repository';
 
 export type DashboardPeriod = 'today' | 'week' | 'month' | 'custom';
 
@@ -27,6 +28,9 @@ export interface DashboardSummary {
   itemsSold: number;
   revenue: number;
   profit: number;
+  expenses: number;
+  netRevenue: number;
+  netProfit: number;
   lowStockCount: number;
   unpaidDebtCount: number;
   totalUnpaidDebtDA: number;
@@ -117,10 +121,20 @@ export class DashboardRepository {
   constructor(
     private readonly db: MySql2Database<typeof schema>,
     private readonly saleRepo: SaleRepository,
+    private readonly expenseRepo: ExpenseRepository,
   ) {}
 
   private buildDateWhere(from: Date, to: Date) {
     return between(sales.createdAt, from, to);
+  }
+
+  async getExpenses(range: ResolvedRange, userId: number): Promise<number> {
+    const res = await this.expenseRepo.aggregateForPeriod({
+      from: range.from,
+      to: range.to,
+      userId,
+    });
+    return res.totalExpensesDA;
   }
 
   async getLowStockCount(userId: number): Promise<number> {
@@ -196,5 +210,42 @@ export class DashboardRepository {
       },
     });
     return buckets;
+  }
+
+  async getSoldItems(range: ResolvedRange, userId: number): Promise<
+    Array<{
+      productId: number;
+      productName: string;
+      categoryName: string;
+      quantitySold: number;
+      totalRevenue: number;
+      averagePrice: number;
+    }>
+  > {
+    const rows = await this.db
+      .select({
+        productId: saleItems.productId,
+        productName: sql<string>`COALESCE(${products.name}, CONCAT('Product #', ${saleItems.productId}))`,
+        categoryName: sql<string>`COALESCE(${categories.name}, 'Autre')`,
+        quantitySold: sql<number>`COALESCE(SUM(${saleItems.quantity}), 0)`,
+        totalRevenue: sql<number>`COALESCE(SUM(${saleItems.quantity} * ${saleItems.unitPrice}), 0)`,
+        averagePrice: sql<number>`COALESCE(ROUND(AVG(${saleItems.unitPrice})), 0)`,
+      })
+      .from(saleItems)
+      .innerJoin(sales, and(eq(saleItems.saleId, sales.id), eq(sales.userId, userId)))
+      .leftJoin(products, eq(saleItems.productId, products.id))
+      .leftJoin(categories, eq(products.categoryId, categories.id))
+      .where(and(eq(sales.userId, userId), between(sales.createdAt, range.from, range.to)))
+      .groupBy(saleItems.productId, products.name, categories.name)
+      .orderBy(desc(sql`SUM(${saleItems.quantity})`));
+
+    return rows.map((r) => ({
+      productId: Number(r.productId),
+      productName: String(r.productName),
+      categoryName: String(r.categoryName),
+      quantitySold: Number(r.quantitySold),
+      totalRevenue: Number(r.totalRevenue),
+      averagePrice: Number(r.averagePrice),
+    }));
   }
 }

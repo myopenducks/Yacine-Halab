@@ -42,4 +42,16 @@ class DashboardService {
       dataFromJson: DashboardChart.fromJson,
     );
   }
+
+  Future<List<SoldItemDetail>> getSoldItems(DashboardQuery query) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/api/v1/dashboard/sold-items',
+      queryParameters: query.toParams(),
+      dataFromJson: (json) => json,
+    );
+    final rawList = res['items'] as List<dynamic>? ?? [];
+    return rawList
+        .map((e) => SoldItemDetail.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
 }

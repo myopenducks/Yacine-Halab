@@ -22,6 +22,13 @@
       "when": 1787909833725,
       "tag": "0002_conscious_mister_fear",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1787948000000,
+      "tag": "0003_add_expenses_table",
+      "breakpoints": true
     }
   ]
 }

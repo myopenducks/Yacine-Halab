@@ -237,6 +237,58 @@ class AppStrings {
   String get systemDefault => isFrench ? 'Système par défaut' : 'System default';
   String get light => isFrench ? 'Clair' : 'Light';
   String get dark => isFrench ? 'Sombre' : 'Dark';
+
+  // ── Expenses (Mes Dépenses / مصاريفي) ───────────────────────────
+  String get myExpenses => isFrench ? 'Mes Dépenses' : 'My Expenses';
+  String get addExpense => isFrench ? 'Ajouter une dépense' : 'Add Expense';
+  String get editExpense => isFrench ? 'Modifier la dépense' : 'Edit Expense';
+  String get expenseTitle => isFrench ? 'Motif de la dépense' : 'Expense title / reason';
+  String get recipientSupplier => isFrench ? 'Bénéficiaire / Fournisseur' : 'Recipient / Supplier / Person';
+  String get expenseCategory => isFrench ? 'Catégorie de dépense' : 'Expense Category';
+  String get expenseDate => isFrench ? 'Date de dépense' : 'Expense Date';
+  String get totalExpenses => isFrench ? 'Total des Dépenses' : 'Total Expenses';
+  String get netProfit => isFrench ? 'Bénéfice Net' : 'Net Profit';
+  String get netRevenue => isFrench ? 'Revenu Net' : 'Net Revenue';
+  String get noExpenses => isFrench ? 'Aucune dépense enregistrée' : 'No expenses recorded';
+  String get expenseAdded => isFrench ? 'Dépense ajoutée avec succès' : 'Expense added successfully';
+  String get expenseUpdated => isFrench ? 'Dépense mise à jour' : 'Expense updated';
+  String get expenseDeleted => isFrench ? 'Dépense supprimée' : 'Expense deleted';
+  String get deleteExpenseConfirm => isFrench
+      ? 'Êtes-vous sûr de vouloir supprimer cette dépense ?'
+      : 'Are you sure you want to delete this expense?';
+
+  // Expense Categories
+  String get catSupplier => isFrench ? 'Fournisseur' : 'Supplier';
+  String get catRent => isFrench ? 'Loyer' : 'Rent';
+  String get catBills => isFrench ? 'Factures & Charges' : 'Bills & Utilities';
+  String get catTransport => isFrench ? 'Transport' : 'Transport';
+  String get catPersonal => isFrench ? 'Retrait Personnel' : 'Personal';
+  String get catOther => isFrench ? 'Autre' : 'Other';
+
+  // ── Customer Debts Hub (دفتر الديون) ────────────────────────────
+  String get customerDebts => isFrench ? 'Dettes Clients' : 'Customer Debts';
+  String get debtsBook => isFrench ? 'Carnet de Crédit' : 'Credit Book';
+  String get searchCustomer => isFrench ? 'Rechercher par nom de client…' : 'Search by customer name…';
+  String get totalDueDebts => isFrench ? 'Total des Créances Dues' : 'Total Due Receivables';
+  String get noDebtsFound => isFrench ? 'Aucune dette en cours 🎉' : 'No pending debts 🎉';
+  String get recordInstallment => isFrench ? 'Verser un acompte' : 'Record Installment';
+  String get installmentRecorded => isFrench ? 'Versement enregistré avec succès ✓' : 'Installment recorded successfully ✓';
+  String get fullySettled => isFrench ? 'Entièrement Réglé' : 'Fully Settled';
+  String get partiallyPaid => isFrench ? 'Partiellement payé' : 'Partially Paid';
+  String get pendingPayment => isFrench ? 'En attente' : 'Pending';
+
+  // ── History & Sold Items ─────────────────────────────────────────
+  String get clearHistory => isFrench ? 'Vider tout l\'historique' : 'Clear entire history';
+  String get clearHistoryConfirm => isFrench
+      ? 'Êtes-vous sûr de vouloir supprimer tout l\'historique des ventes ? Cette action est irréversible.'
+      : 'Are you sure you want to delete the entire sales history? This cannot be undone.';
+  String get restockCheckbox => isFrench ? 'Restituer les articles au stock' : 'Restock items back to inventory';
+  String get historyCleared => isFrench ? 'Historique des ventes vidé avec succès' : 'Sales history cleared successfully';
+  String get soldItemsBreakdown => isFrench ? 'Articles vendus en détail' : 'Sold Items Breakdown';
+  String get noSoldItems => isFrench ? 'Aucun article vendu sur cette période' : 'No items sold during this period';
+  String get lowStockItems => isFrench ? 'Articles en stock faible' : 'Low Stock Items';
+  String get allInStock => isFrench ? 'Tous les produits ont un stock suffisant ✓' : 'All products have sufficient stock ✓';
+  String get quantitySold => isFrench ? 'Quantité vendue' : 'Quantity sold';
 }
 
 final appStringsProvider = Provider<AppStrings>((ref) {

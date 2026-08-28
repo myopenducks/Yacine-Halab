@@ -168,4 +168,13 @@ export class SaleService {
     await this.repo.deleteSale(id, userId);
     return { success: true, message: 'Sale deleted and inventory restored successfully' };
   }
+
+  async clearHistory(userId: number, restock: boolean = true): Promise<{ success: boolean; deletedSalesCount: number; message: string }> {
+    const result = await this.repo.clearSalesHistory(userId, restock);
+    return {
+      success: true,
+      deletedSalesCount: result.deletedSalesCount,
+      message: `Sales history cleared. ${result.deletedSalesCount} sale(s) deleted.`,
+    };
+  }
 }

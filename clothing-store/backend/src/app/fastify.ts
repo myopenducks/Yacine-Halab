@@ -24,6 +24,10 @@ import { DashboardRepository } from '../modules/dashboard/dashboard.repository';
 import { DashboardService } from '../modules/dashboard/dashboard.service';
 import { DashboardHandler } from '../modules/dashboard/dashboard.handler';
 import { registerDashboardRoutes } from '../modules/dashboard/dashboard.routes';
+import { ExpenseRepository } from '../modules/expenses/expense.repository';
+import { ExpenseService } from '../modules/expenses/expense.service';
+import { ExpenseHandler } from '../modules/expenses/expense.handler';
+import { registerExpenseRoutes } from '../modules/expenses/expense.routes';
 import { loadEnv } from '../config/env';
 
 export async function createApp() {
@@ -74,7 +78,12 @@ export async function createApp() {
   const saleHandler = new SaleHandler(saleService);
   registerSaleRoutes(app, saleHandler);
 
-  const dashboardRepo = new DashboardRepository(db, saleRepo);
+  const expenseRepo = new ExpenseRepository(db);
+  const expenseService = new ExpenseService(expenseRepo);
+  const expenseHandler = new ExpenseHandler(expenseService);
+  registerExpenseRoutes(app, expenseHandler);
+
+  const dashboardRepo = new DashboardRepository(db, saleRepo, expenseRepo);
   const dashboardService = new DashboardService(dashboardRepo);
   const dashboardHandler = new DashboardHandler(dashboardService);
   registerDashboardRoutes(app, dashboardHandler);

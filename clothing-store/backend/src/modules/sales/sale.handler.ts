@@ -53,4 +53,11 @@ export class SaleHandler {
     const result = await this.service.delete(id, userId);
     return ok(result);
   }
+
+  async clearHistory(req: FastifyRequest) {
+    const userId = (req.user as { id: number }).id;
+    const restock = (req.query as { restock?: string })?.restock !== 'false';
+    const result = await this.service.clearHistory(userId, restock);
+    return ok(result);
+  }
 }

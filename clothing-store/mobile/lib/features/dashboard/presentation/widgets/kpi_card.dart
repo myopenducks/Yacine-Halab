@@ -10,19 +10,20 @@ class KpiCard extends StatelessWidget {
     required this.value,
     required this.icon,
     this.highlight = false,
+    this.onTap,
   });
 
   final String title;
   final String value;
   final IconData icon;
   final bool highlight;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isLight ? AppColors.white : AppColors.gray900,
         borderRadius: BorderRadius.circular(20),
@@ -33,9 +34,17 @@ class KpiCard extends StatelessWidget {
           width: highlight ? 1.6 : 1.2,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
           Container(
             width: 36,
             height: 36,
@@ -60,18 +69,20 @@ class KpiCard extends StatelessWidget {
               color: isLight ? AppColors.gray500 : AppColors.gray400,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontFamily: AppTheme.fontFamily,
-              fontWeight: FontWeight.w800,
-            ),
+              const SizedBox(height: 6),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontFamily: AppTheme.fontFamily,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
-    );
+    ));
   }
 }

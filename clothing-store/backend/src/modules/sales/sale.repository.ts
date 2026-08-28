@@ -396,4 +396,32 @@ export class SaleRepository {
       return { success: true };
     });
   }
+
+  async clearSalesHistory(userId: number, restock: boolean = true): Promise<{ success: boolean; deletedSalesCount: number }> {
+    return this.transaction(async (tx) => {
+      const userSales = await tx.select({ id: sales.id }).from(sales).where(eq(sales.userId, userId));
+      const saleIds = userSales.map((s) => s.id);
+
+      if (saleIds.length === 0) {
+        return { success: true, deletedSalesCount: 0 };
+      }
+
+      if (restock) {
+        const items = await tx.select().from(saleItems).where(inArray(saleItems.saleId, saleIds));
+        for (const item of items) {
+          await tx
+            .update(products)
+            .set({
+              quantity: sql`${products.quantity} + ${item.quantity}`,
+            })
+            .where(eq(products.id, item.productId));
+        }
+      }
+
+      await tx.delete(saleItems).where(inArray(saleItems.saleId, saleIds));
+      await tx.delete(sales).where(eq(sales.userId, userId));
+
+      return { success: true, deletedSalesCount: saleIds.length };
+    });
+  }
 }

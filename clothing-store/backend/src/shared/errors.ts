@@ -11,6 +11,7 @@ export type ErrorCode =
   | 'SALE_ALREADY_PAID'
   | 'USER_EXISTS'
   | 'USER_NOT_FOUND'
+  | 'EXPENSE_NOT_FOUND'
   | 'INTERNAL_ERROR';
 
 export class AppError extends Error {

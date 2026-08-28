@@ -19,4 +19,11 @@ export class DashboardHandler {
     const result = await this.service.salesChart(query, userId);
     return ok(result);
   }
+
+  async soldItems(req: FastifyRequest) {
+    const userId = (req.user as { id: number }).id;
+    const query = summaryQuerySchema.parse(req.query);
+    const result = await this.service.soldItems(query, userId);
+    return ok(result);
+  }
 }
