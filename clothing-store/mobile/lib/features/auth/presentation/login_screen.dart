@@ -138,10 +138,50 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
 
+          // Bottom-left authentic boutique trousers SVG (Vector (2).svg)
+          Positioned(
+            bottom: 45,
+            left: 20,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.12,
+                child: SvgPicture.asset(
+                  'assets/icon/Vector (2).svg',
+                  width: 46,
+                  height: 94,
+                  colorFilter: const ColorFilter.mode(
+                    _deepEspresso,
+                    BlendMode.srcIn,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Bottom-right authentic boutique sock/footwear SVG (Vector (1).svg)
+          Positioned(
+            bottom: 45,
+            right: 24,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.12,
+                child: SvgPicture.asset(
+                  'assets/icon/Vector (1).svg',
+                  width: 52,
+                  height: 72,
+                  colorFilter: const ColorFilter.mode(
+                    _deepEspresso,
+                    BlendMode.srcIn,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
           // Bottom boutique hanger SVG
           Positioned(
             bottom: 85,
-            left: 140,
+            left: 135,
             child: IgnorePointer(
               child: Opacity(
                 opacity: 0.11,
