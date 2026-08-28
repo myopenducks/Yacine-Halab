@@ -35,6 +35,8 @@ export function getJwtPayload(req: FastifyRequest): JwtPayload {
 const PUBLIC_ROUTES: Array<{ method: string; url: string }> = [
   { method: 'GET', url: '/health' },
   { method: 'POST', url: '/api/v1/auth/login' },
+  { method: 'POST', url: '/api/v1/auth/guest' },
+  { method: 'POST', url: '/api/v1/auth/register' },
 ];
 
 function stripQuery(url: string | undefined): string {
