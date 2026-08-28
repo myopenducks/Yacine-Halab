@@ -7,6 +7,8 @@ import '../../../../core/routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_feedback.dart';
+import '../../../../core/providers/app_refresh.dart';
+import '../../../products/models/product.dart';
 import '../../../products/presentation/widgets/product_tile.dart';
 import '../../../products/providers/products_provider.dart';
 
@@ -20,6 +22,8 @@ class ProductsTab extends ConsumerStatefulWidget {
 class _ProductsTabState extends ConsumerState<ProductsTab> {
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
+  bool _selectionMode = false;
+  final Set<int> _selectedIds = {};
 
   @override
   void initState() {
@@ -51,6 +55,77 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
     await context.push(path);
   }
 
+  void _toggleSelectionMode(int? initialProductId) {
+    setState(() {
+      _selectionMode = !_selectionMode;
+      if (!_selectionMode) {
+        _selectedIds.clear();
+      } else if (initialProductId != null) {
+        _selectedIds.add(initialProductId);
+      }
+    });
+  }
+
+  void _toggleSelection(int productId) {
+    setState(() {
+      if (_selectedIds.contains(productId)) {
+        _selectedIds.remove(productId);
+        if (_selectedIds.isEmpty) _selectionMode = false;
+      } else {
+        _selectedIds.add(productId);
+      }
+    });
+  }
+
+  Future<void> _showCategoryPicker(List<Category> categories) async {
+    final selectedId = await showDialog<int>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Change Category'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: categories.length,
+              itemBuilder: (context, index) {
+                final cat = categories[index];
+                return ListTile(
+                  title: Text(cat.name),
+                  onTap: () => Navigator.pop(ctx, cat.id),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selectedId != null && mounted) {
+       try {
+         await ref.read(productServiceProvider).bulkUpdateCategory(
+           productIds: _selectedIds.toList(),
+           categoryId: selectedId,
+         );
+         if (mounted) {
+           _toggleSelectionMode(null);
+           refreshAfterInventoryChange(ref);
+           showAppSnackBar(context, 'Products updated successfully', kind: AppSnackKind.success);
+         }
+       } catch (e) {
+         if (mounted) {
+           showAppSnackBar(context, 'Failed to update products', kind: AppSnackKind.error);
+         }
+       }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -63,9 +138,17 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Text(strings.products, style: theme.textTheme.headlineSmall),
+        title: Text(
+          _selectionMode ? '${_selectedIds.length} selected' : strings.products,
+          style: theme.textTheme.headlineSmall,
+        ),
         actions: [
-          if (list.total > 0)
+          if (_selectionMode)
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => _toggleSelectionMode(null),
+            )
+          else if (list.total > 0)
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: Center(
@@ -213,6 +296,28 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
               child: _buildList(list, isLight),
             ),
           ),
+          if (_selectionMode && _selectedIds.isNotEmpty)
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: FilledButton.icon(
+                    icon: const Icon(Icons.category_outlined),
+                    label: const Text('Change Category'),
+                    onPressed: () {
+                      final cats = ref.read(categoriesProvider).valueOrNull;
+                      if (cats != null) {
+                        _showCategoryPicker(cats);
+                      } else {
+                        showAppSnackBar(context, 'Categories not loaded', kind: AppSnackKind.error);
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -285,7 +390,17 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
         final product = list.items[index];
         return ProductTile(
           product: product,
-          onTap: () => _openForm(productId: product.id),
+          isSelected: _selectionMode ? _selectedIds.contains(product.id) : null,
+          onLongPress: () {
+            if (!_selectionMode) _toggleSelectionMode(product.id);
+          },
+          onTap: () {
+            if (_selectionMode) {
+              _toggleSelection(product.id);
+            } else {
+              _openForm(productId: product.id);
+            }
+          },
         );
       },
     );

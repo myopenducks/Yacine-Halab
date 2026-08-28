@@ -97,6 +97,20 @@ class ProductService {
   Future<void> delete(int id) {
     return _dio.deleteVoid('/api/v1/products/$id');
   }
+
+  Future<Map<String, dynamic>> bulkUpdateCategory({
+    required List<int> productIds,
+    required int categoryId,
+  }) async {
+    return _dio.post<Map<String, dynamic>>(
+      '/api/v1/products/bulk-category',
+      body: {
+        'productIds': productIds,
+        'categoryId': categoryId,
+      },
+      dataFromJson: (data) => data,
+    );
+  }
 }
 
 const Object _sentinel = Object();

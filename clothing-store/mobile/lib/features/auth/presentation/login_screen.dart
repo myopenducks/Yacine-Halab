@@ -159,13 +159,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           : const Text('Sign In'),
                     ),
                   ),
-                  const SizedBox(height: 22),
-                  Center(
-                    child: Text(
-                      'TIP: use admin / admin123 for this MVP',
-                      style: theme.textTheme.bodySmall,
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: _loading
+                          ? null
+                          : () {
+                              _usernameCtrl.text = 'admin';
+                              _passwordCtrl.text = 'admin123';
+                              _submit();
+                            },
+                      child: const Text('Continue as Guest'),
                     ),
                   ),
+                  const SizedBox(height: 22),
                   const Spacer(flex: 3),
                   const DevelopedByZiadFooter(),
                   const SizedBox(height: 12),

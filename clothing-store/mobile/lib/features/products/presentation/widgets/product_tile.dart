@@ -12,10 +12,14 @@ class ProductTile extends ConsumerWidget {
     super.key,
     required this.product,
     required this.onTap,
+    this.onLongPress,
+    this.isSelected,
   });
 
   final Product product;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final bool? isSelected;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,32 +42,46 @@ class ProductTile extends ConsumerWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(18),
         child: Ink(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: isLight ? AppColors.white : AppColors.gray900,
+            color: isSelected == true 
+                ? (isLight ? AppColors.primary.withValues(alpha: 0.1) : AppColors.primary.withValues(alpha: 0.2))
+                : (isLight ? AppColors.white : AppColors.gray900),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: isLight ? AppColors.gray200 : AppColors.gray800,
-              width: 1.2,
+              color: isSelected == true
+                  ? AppColors.primary
+                  : (isLight ? AppColors.gray200 : AppColors.gray800),
+              width: isSelected == true ? 2.0 : 1.2,
             ),
           ),
           child: Row(
             children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: isLight ? AppColors.gray100 : AppColors.gray800,
-                  borderRadius: BorderRadius.circular(14),
+              if (isSelected != null) ...[
+                Checkbox(
+                  value: isSelected,
+                  onChanged: (_) => onTap(),
+                  activeColor: AppColors.primary,
                 ),
-                child: Icon(
-                  Icons.checkroom_outlined,
-                  color: isLight ? AppColors.black : AppColors.white,
+                const SizedBox(width: 8),
+              ] else ...[
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: isLight ? AppColors.gray100 : AppColors.gray800,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.checkroom_outlined,
+                    color: isLight ? AppColors.black : AppColors.white,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 14),
+                const SizedBox(width: 14),
+              ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,10 +120,11 @@ class ProductTile extends ConsumerWidget {
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: isLight ? AppColors.gray400 : AppColors.gray500,
-              ),
+              if (isSelected == null)
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: isLight ? AppColors.gray400 : AppColors.gray500,
+                ),
             ],
           ),
         ),

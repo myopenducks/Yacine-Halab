@@ -101,8 +101,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       final purchase = int.parse(_purchaseCtrl.text.trim());
       final selling = int.parse(_sellingCtrl.text.trim());
       final qty = int.parse(_qtyCtrl.text.trim());
-      final img =
-          _imageCtrl.text.trim().isEmpty ? null : _imageCtrl.text.trim();
+
 
       if (widget.isEdit) {
         await service.update(
@@ -112,7 +111,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           purchasePrice: purchase,
           sellingPrice: selling,
           quantity: qty,
-          imageUrl: img,
         );
       } else {
         await service.create(
@@ -121,7 +119,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           purchasePrice: purchase,
           sellingPrice: selling,
           quantity: qty,
-          imageUrl: img,
         );
       }
 
@@ -295,6 +292,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                           labelText: strings.productName,
                           hintText: 'e.g. T-Shirt Nike',
                         ),
+                        onChanged: (v) {
+                          if (!widget.isEdit) setState(() {});
+                        },
                         validator: (v) {
                           if (v == null || v.trim().isEmpty) {
                             return strings.fillRequiredFields;
@@ -305,6 +305,46 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                           return null;
                         },
                       ),
+                      if (!widget.isEdit && _nameCtrl.text.trim().isNotEmpty)
+                        Builder(
+                          builder: (context) {
+                            final prods = ref.watch(productsListProvider).items;
+                            final query = _nameCtrl.text.toLowerCase().trim();
+                            final matches = prods.where((p) => p.name.toLowerCase().contains(query)).take(5).toList();
+                            
+                            if (matches.isEmpty) return const SizedBox.shrink();
+                            
+                            // Deduplicate by name
+                            final uniqueNames = <String>{};
+                            final uniqueMatches = <Product>[];
+                            for (final m in matches) {
+                              if (uniqueNames.add(m.name.toLowerCase())) {
+                                uniqueMatches.add(m);
+                              }
+                            }
+
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 12.0),
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: uniqueMatches.map((p) => ActionChip(
+                                  label: Text(p.name, style: const TextStyle(fontSize: 13)),
+                                  backgroundColor: isLight ? AppColors.gray200 : AppColors.gray800,
+                                  side: BorderSide.none,
+                                  onPressed: () {
+                                    _nameCtrl.text = p.name;
+                                    _purchaseCtrl.text = '${p.purchasePrice}';
+                                    _sellingCtrl.text = '${p.sellingPrice}';
+                                    setState(() {
+                                      _categoryId = p.categoryId;
+                                    });
+                                  },
+                                )).toList(),
+                              ),
+                            );
+                          },
+                        ),
                       const SizedBox(height: 16),
                       categoriesAsync.when(
                         loading: () => const LinearProgressIndicator(),
@@ -419,25 +459,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                         ),
                         validator: _nonNegInt,
                       ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _imageCtrl,
-                        keyboardType: TextInputType.url,
-                        decoration: InputDecoration(
-                          labelText: strings.imageUrlOptional,
-                          hintText: 'https://…',
-                        ),
-                        validator: (v) {
-                          if (v == null || v.trim().isEmpty) return null;
-                          final uri = Uri.tryParse(v.trim());
-                          if (uri == null ||
-                              !(uri.isScheme('http') ||
-                                  uri.isScheme('https'))) {
-                            return 'URL http(s) invalide';
-                          }
-                          return null;
-                        },
-                      ),
+
                       const SizedBox(height: 10),
                       Text(
                         strings.moneyNote,

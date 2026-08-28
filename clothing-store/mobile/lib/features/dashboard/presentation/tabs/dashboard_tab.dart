@@ -48,12 +48,6 @@ class DashboardHomeTab extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    strings.helloWelcome,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: isLight ? AppColors.gray500 : AppColors.gray400,
-                    ),
-                  ),
                   Text(name, style: theme.textTheme.titleLarge),
                 ],
               ),
