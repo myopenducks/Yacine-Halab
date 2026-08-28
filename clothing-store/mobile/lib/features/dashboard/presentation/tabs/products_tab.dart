@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/placeholder_notice.dart';
 import '../../../products/presentation/widgets/product_tile.dart';
 import '../../../products/providers/products_provider.dart';
 
@@ -56,11 +58,12 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
     final filters = ref.watch(productFiltersProvider);
     final list = ref.watch(productsListProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
+    final strings = ref.watch(appStringsProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Text('Products', style: theme.textTheme.headlineSmall),
+        title: Text(strings.products, style: theme.textTheme.headlineSmall),
         actions: [
           if (list.total > 0)
             Padding(
@@ -90,12 +93,12 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
                       setState(() {});
                     },
                     decoration: InputDecoration(
-                      hintText: 'Search inventory...',
+                      hintText: strings.searchProducts,
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: _searchCtrl.text.isEmpty
                           ? null
                           : IconButton(
-                              tooltip: 'Clear',
+                              tooltip: strings.cancel,
                               onPressed: () {
                                 _searchCtrl.clear();
                                 ref
@@ -165,7 +168,7 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   children: [
                     _FilterChip(
-                      label: 'All',
+                      label: strings.all,
                       selected: filters.categoryId == null,
                       onTap: () => ref
                           .read(productFiltersProvider.notifier)
@@ -173,7 +176,7 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
                     ),
                     const SizedBox(width: 8),
                     _FilterChip(
-                      label: 'Low stock',
+                      label: strings.lowStock,
                       selected: filters.lowStockOnly,
                       icon: Icons.warning_amber_rounded,
                       onTap: () => ref
@@ -216,6 +219,8 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
   }
 
   Widget _buildList(ProductsListState list, bool isLight) {
+    final strings = ref.watch(appStringsProvider);
+
     if (list.isLoading && list.items.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -233,13 +238,13 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
         children: [
           PlaceholderNotice(
             icon: Icons.wifi_off_rounded,
-            title: 'Could not load products',
+            title: strings.noData,
             subtitle: list.error!,
           ),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: () => ref.read(productsListProvider.notifier).refresh(),
-            child: const Text('Retry'),
+            child: Text(strings.cancel),
           ),
         ],
       );
@@ -250,15 +255,15 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 40, 20, 32),
         children: [
-          const PlaceholderNotice(
+          PlaceholderNotice(
             icon: Icons.inventory_2_outlined,
-            title: 'No products yet',
-            subtitle: 'Tap + to add your first item to inventory.',
+            title: strings.noProductsFound,
+            subtitle: strings.noData,
           ),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: () => _openForm(),
-            child: const Text('Add product'),
+            child: Text(strings.addProduct),
           ),
         ],
       );
@@ -308,115 +313,53 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final bg = selected
-        ? AppColors.chipSelectedBg(brightness)
-        : AppColors.chipUnselectedBg(brightness);
-    final fg = selected
-        ? AppColors.chipSelectedFg(brightness)
-        : AppColors.chipUnselectedFg(brightness);
-    final border = AppColors.chipBorder(brightness);
-
+    final theme = Theme.of(context);
+    final isLight = theme.brightness == Brightness.light;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(999),
         child: Ink(
-          height: 42,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(14),
+            color: selected
+                ? (isLight ? AppColors.black : AppColors.white)
+                : (isLight ? AppColors.white : AppColors.gray900),
+            borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: selected ? Colors.transparent : border,
-              width: 1.2,
+              color: selected
+                  ? (isLight ? AppColors.black : AppColors.white)
+                  : (isLight ? AppColors.gray200 : AppColors.gray800),
             ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 16, color: fg),
-                const SizedBox(width: 6),
+                Icon(
+                  icon,
+                  size: 14,
+                  color: selected
+                      ? (isLight ? AppColors.white : AppColors.black)
+                      : (isLight ? AppColors.gray600 : AppColors.gray400),
+                ),
+                const SizedBox(width: 4),
               ],
               Text(
                 label,
                 style: TextStyle(
                   fontFamily: AppTheme.fontFamily,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: fg,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: selected
+                      ? (isLight ? AppColors.white : AppColors.black)
+                      : (isLight ? AppColors.gray800 : AppColors.gray200),
                 ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class PlaceholderNotice extends StatelessWidget {
-  const PlaceholderNotice({
-    super.key,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isLight = theme.brightness == Brightness.light;
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: isLight ? AppColors.white : AppColors.gray900,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: isLight ? AppColors.gray200 : AppColors.gray800,
-          width: 1.2,
-        ),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: isLight ? AppColors.gray100 : AppColors.gray800,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(
-              icon,
-              size: 28,
-              color: isLight ? AppColors.black : AppColors.white,
-            ),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: AppTheme.fontFamily,
-              fontWeight: FontWeight.w700,
-              fontSize: 17,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: isLight ? AppColors.gray500 : AppColors.gray400,
-            ),
-          ),
-        ],
       ),
     );
   }

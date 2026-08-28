@@ -1,36 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/utils/date.dart';
-
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/money.dart';
 import '../../models/sale.dart';
 
-class SaleTile extends StatelessWidget {
+class SaleTile extends ConsumerWidget {
   const SaleTile({
     super.key,
     required this.sale,
     required this.onTap,
+    this.onLongPress,
     this.onEdit,
     this.onMarkPaid,
   });
 
   final SaleHeader sale;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
   final VoidCallback? onEdit;
   final VoidCallback? onMarkPaid;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
     final dateFmt = appDateTimeFormat;
     final hasDebt = sale.hasDebt;
+    final strings = ref.watch(appStringsProvider);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(18),
         child: Ink(
           padding: const EdgeInsets.all(14),
@@ -85,7 +90,7 @@ class SaleTile extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              'Sale #${sale.id}',
+                              '${strings.sales} #${sale.id}',
                               style: theme.textTheme.titleLarge?.copyWith(fontSize: 16),
                             ),
                             if (sale.customerName != null && sale.customerName!.isNotEmpty) ...[
@@ -192,14 +197,14 @@ class SaleTile extends StatelessWidget {
               Row(
                 children: [
                   _Chip(
-                    label: '${sale.itemCount} items',
+                    label: '${sale.itemCount} ${strings.items}',
                     isLight: isLight,
                   ),
                   const SizedBox(width: 8),
                   _Chip(
                     label: sale.remainingAmount == 0
-                        ? 'Paid'
-                        : 'Due ${formatDASimple(sale.remainingAmount)}',
+                        ? strings.paid
+                        : '${strings.due} ${formatDASimple(sale.remainingAmount)}',
                     isLight: isLight,
                     warn: hasDebt,
                   ),
@@ -217,14 +222,14 @@ class SaleTile extends StatelessWidget {
                             color: AppColors.success.withValues(alpha: 0.3),
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.check_circle_outline, size: 14, color: AppColors.success),
-                            SizedBox(width: 4),
+                            const Icon(Icons.check_circle_outline, size: 14, color: AppColors.success),
+                            const SizedBox(width: 4),
                             Text(
-                              'Mark Paid',
-                              style: TextStyle(
+                              strings.markFullyPaid,
+                              style: const TextStyle(
                                 fontFamily: AppTheme.fontFamily,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,

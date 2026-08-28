@@ -52,4 +52,12 @@ export function registerSaleRoutes(
       return reply.status(200).send(result);
     },
   );
+
+  app.delete(
+    '/api/v1/sales/:id',
+    async (req, reply) => {
+      const result = await handler.delete(req);
+      return reply.status(200).send(result);
+    },
+  );
 }

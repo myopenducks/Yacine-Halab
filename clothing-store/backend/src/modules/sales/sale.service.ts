@@ -61,7 +61,7 @@ export class SaleService {
 
       for (const item of dto.items) {
         const prod = productMap.get(item.productId)!;
-        const unitPrice = prod.sellingPrice;
+        const unitPrice = item.unitPrice !== undefined ? item.unitPrice : prod.sellingPrice;
         const purchasePrice = prod.purchasePrice;
         const lineTotal = unitPrice * item.quantity;
         totalAmount += lineTotal;
@@ -157,5 +157,11 @@ export class SaleService {
     await this.getById(id);
     await this.repo.updateSale(id, dto);
     return this.getById(id);
+  }
+
+  async delete(id: number): Promise<{ success: boolean; message: string }> {
+    await this.getById(id);
+    await this.repo.deleteSale(id);
+    return { success: true, message: 'Sale deleted and inventory restored successfully' };
   }
 }

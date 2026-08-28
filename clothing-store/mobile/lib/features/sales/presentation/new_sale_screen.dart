@@ -462,6 +462,7 @@ class _NewSaleCartSection extends ConsumerWidget {
               onIncrement: () => notifier.increment(line.product.id),
               onDecrement: () => notifier.decrement(line.product.id),
               onRemove: () => notifier.remove(line.product.id),
+              onEditPrice: () => _showEditPriceDialog(context, ref, line),
             ),
           ),
         ),
@@ -586,6 +587,74 @@ class _NewSaleCartSection extends ConsumerWidget {
         const Divider(),
         const SizedBox(height: 14),
       ],
+    );
+  }
+
+  void _showEditPriceDialog(BuildContext context, WidgetRef ref, CartLine line) {
+    final strings = ref.read(appStringsProvider);
+    final ctrl = TextEditingController(text: '${line.unitPrice}');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.sell_outlined, color: AppColors.primary, size: 24),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '${line.product.name} - ${strings.editPrice}',
+                style: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${strings.sellingPrice}: ${formatDAAmount(line.product.sellingPrice)}',
+              style: const TextStyle(color: AppColors.gray500, fontSize: 13),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: InputDecoration(
+                labelText: strings.unitPriceLabel,
+                suffixText: 'DA',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          if (line.hasCustomPrice)
+            TextButton(
+              onPressed: () {
+                ref.read(newSaleProvider.notifier).setUnitPrice(line.product.id, null);
+                Navigator.of(ctx).pop();
+              },
+              child: Text(strings.cancel),
+            ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              final val = int.tryParse(ctrl.text.trim());
+              if (val != null && val >= 0) {
+                ref.read(newSaleProvider.notifier).setUnitPrice(line.product.id, val);
+              }
+              Navigator.of(ctx).pop();
+            },
+            child: Text(strings.confirm),
+          ),
+        ],
+      ),
     );
   }
 }

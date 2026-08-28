@@ -11,18 +11,30 @@ class CartLine {
   const CartLine({
     required this.product,
     required this.quantity,
+    this.customUnitPrice,
   });
 
   final Product product;
   final int quantity;
+  final int? customUnitPrice;
 
-  int get lineTotal => product.sellingPrice * quantity;
+  int get unitPrice => customUnitPrice ?? product.sellingPrice;
+  int get lineTotal => unitPrice * quantity;
   int get maxQty => product.quantity;
+  bool get hasCustomPrice => customUnitPrice != null && customUnitPrice != product.sellingPrice;
 
-  CartLine copyWith({Product? product, int? quantity}) {
+  CartLine copyWith({
+    Product? product,
+    int? quantity,
+    int? customUnitPrice,
+    bool clearCustomPrice = false,
+  }) {
     return CartLine(
       product: product ?? this.product,
       quantity: quantity ?? this.quantity,
+      customUnitPrice: clearCustomPrice
+          ? null
+          : (customUnitPrice ?? this.customUnitPrice),
     );
   }
 }
@@ -127,6 +139,19 @@ class NewSaleNotifier extends Notifier<NewSaleState> {
     state = state.copyWith(lines: next, clearError: true);
   }
 
+  void setUnitPrice(int productId, int? price) {
+    final idx = state.lines.indexWhere((l) => l.product.id == productId);
+    if (idx < 0) return;
+    final line = state.lines[idx];
+    final next = [...state.lines];
+    if (price == null || price == line.product.sellingPrice) {
+      next[idx] = line.copyWith(clearCustomPrice: true);
+    } else {
+      next[idx] = line.copyWith(customUnitPrice: price);
+    }
+    state = state.copyWith(lines: next, clearError: true);
+  }
+
   void increment(int productId) {
     final idx = state.lines.indexWhere((l) => l.product.id == productId);
     if (idx < 0) return;
@@ -196,7 +221,11 @@ class NewSaleNotifier extends Notifier<NewSaleState> {
     try {
       final sale = await ref.read(saleServiceProvider).create(
             items: state.lines
-                .map((l) => (productId: l.product.id, quantity: l.quantity))
+                .map((l) => (
+                      productId: l.product.id,
+                      quantity: l.quantity,
+                      unitPrice: l.unitPrice,
+                    ))
                 .toList(growable: false),
             customerName: state.customerName,
             notes: state.notes,

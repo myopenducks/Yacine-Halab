@@ -223,20 +223,79 @@ class SaleDetailScreen extends ConsumerWidget {
     );
   }
 
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    SaleDetail sale,
+  ) async {
+    final strings = ref.read(appStringsProvider);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.delete_outline_rounded, color: AppColors.debtRed, size: 26),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '${strings.deleteSale} #${sale.id}',
+                style: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          strings.deleteSaleConfirm,
+          style: const TextStyle(fontFamily: AppTheme.fontFamily, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.debtRed),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(strings.delete),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await ref.read(saleServiceProvider).deleteSale(sale.id);
+      refreshAfterInventoryChangeFromNotifier(ref);
+      if (context.mounted) {
+        showAppToast(context, strings.saleDeleted, type: ToastType.success);
+        context.pop();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        showAppToast(context, 'Failed to delete sale', type: ToastType.error);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(saleByIdProvider(saleId));
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final strings = ref.watch(appStringsProvider);
-    final async = ref.watch(saleByIdProvider(saleId));
     final dateFmt = appDateTimeFormat;
+    final strings = ref.watch(appStringsProvider);
 
     return Scaffold(
-      backgroundColor: isLight ? AppColors.surfaceLight : AppColors.dark,
+      backgroundColor: isLight ? AppColors.gray050 : AppColors.black,
       appBar: AppBar(
-        title: Text('Sale #$saleId'),
+        title: Text(
+          '${strings.sales} #$saleId',
+          style: theme.textTheme.headlineSmall,
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -247,10 +306,20 @@ class SaleDetailScreen extends ConsumerWidget {
         ),
         actions: [
           async.maybeWhen(
-            data: (sale) => IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              tooltip: 'Edit details',
-              onPressed: () => _openEditDialog(context, ref, sale),
+            data: (sale) => Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: strings.editCustomerNotes,
+                  onPressed: () => _openEditDialog(context, ref, sale),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: AppColors.danger),
+                  tooltip: strings.deleteSale,
+                  onPressed: () => _confirmDelete(context, ref, sale),
+                ),
+              ],
             ),
             orElse: () => const SizedBox.shrink(),
           ),

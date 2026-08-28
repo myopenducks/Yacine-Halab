@@ -35,7 +35,7 @@ class SaleService {
   }
 
   Future<SaleDetail> create({
-    required List<({int productId, int quantity})> items,
+    required List<({int productId, int quantity, int? unitPrice})> items,
     String? customerName,
     String? notes,
     int? paidAmount,
@@ -44,7 +44,11 @@ class SaleService {
       '/api/v1/sales',
       body: {
         'items': items
-            .map((i) => {'productId': i.productId, 'quantity': i.quantity})
+            .map((i) => {
+                  'productId': i.productId,
+                  'quantity': i.quantity,
+                  if (i.unitPrice != null) 'unitPrice': i.unitPrice,
+                })
             .toList(growable: false),
         if (customerName != null && customerName.trim().isNotEmpty)
           'customerName': customerName.trim(),
@@ -60,6 +64,11 @@ class SaleService {
       '/api/v1/sales/$id',
       dataFromJson: SaleDetail.fromJson,
     );
+  }
+
+  /// Delete a sale and restore inventory stock.
+  Future<void> deleteSale(int saleId) {
+    return _dio.delete<void>('/api/v1/sales/$saleId');
   }
 
   /// Record a partial or full payment for a debt sale.

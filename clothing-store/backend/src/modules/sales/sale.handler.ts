@@ -41,4 +41,10 @@ export class SaleHandler {
     const result = await this.service.update(id, dto);
     return ok(result);
   }
+
+  async delete(req: FastifyRequest) {
+    const { id } = saleIdParamSchema.parse(req.params);
+    const result = await this.service.delete(id);
+    return ok(result);
+  }
 }

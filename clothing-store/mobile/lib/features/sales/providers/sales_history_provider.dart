@@ -270,6 +270,17 @@ class SalesListNotifier extends Notifier<SalesListState> {
     );
   }
 
+  Future<bool> deleteSale(int id) async {
+    try {
+      await _service.deleteSale(id);
+      await refresh();
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: _messageOf(e));
+      return false;
+    }
+  }
+
   String _messageOf(Object e) {
     if (e is ApiException) return e.error.message;
     if (e is NetworkException) return e.message;

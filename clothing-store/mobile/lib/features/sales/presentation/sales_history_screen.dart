@@ -369,7 +369,57 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
     return '${fmt.format(filters.customFrom!)}–${fmt.format(filters.customTo!)}';
   }
 
+  Future<void> _confirmDelete(SaleHeader sale) async {
+    final strings = ref.read(appStringsProvider);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.delete_outline_rounded, color: AppColors.debtRed, size: 26),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '${strings.deleteSale} #${sale.id}',
+                style: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          strings.deleteSaleConfirm,
+          style: const TextStyle(fontFamily: AppTheme.fontFamily, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.debtRed),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(strings.delete),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final success = await ref.read(salesListProvider.notifier).deleteSale(sale.id);
+    if (!mounted) return;
+    if (success) {
+      refreshAfterInventoryChangeFromNotifier(ref);
+      showAppToast(context, strings.saleDeleted, type: ToastType.success);
+    } else {
+      showAppToast(context, 'Failed to delete sale', type: ToastType.error);
+    }
+  }
+
   Widget _buildList(SalesListState list, bool isLight, ThemeData theme) {
+    final strings = ref.watch(appStringsProvider);
+
     if (list.isLoading && list.items.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -387,14 +437,14 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
         children: [
           _EmptyState(
             icon: Icons.wifi_off_rounded,
-            title: 'Could not load sales',
+            title: strings.noData,
             subtitle: list.error!,
             isLight: isLight,
           ),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: () => ref.read(salesListProvider.notifier).refresh(),
-            child: const Text('Retry'),
+            child: Text(strings.cancel),
           ),
         ],
       );
@@ -407,8 +457,8 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
         children: [
           _EmptyState(
             icon: Icons.receipt_long_outlined,
-            title: 'No sales found',
-            subtitle: 'No sales match the selected filter.',
+            title: strings.noSalesRecorded,
+            subtitle: strings.noData,
             isLight: isLight,
           ),
         ],
@@ -438,6 +488,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
         return SaleTile(
           sale: sale,
           onTap: () => context.push(AppRouteNames.saleDetailPath(sale.id)),
+          onLongPress: () => _confirmDelete(sale),
           onEdit: () => _quickEdit(sale),
           onMarkPaid: sale.hasDebt ? () => _quickMarkPaid(sale) : null,
         );

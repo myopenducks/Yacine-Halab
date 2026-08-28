@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/l10n/app_strings.dart';
 import '../../../core/network/models.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
@@ -86,9 +87,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   }
 
   Future<void> _save() async {
+    final strings = ref.read(appStringsProvider);
     if (!_formKey.currentState!.validate()) return;
     if (_categoryId == null) {
-      _toast('Pick a category');
+      _toast(strings.selectCategory);
       return;
     }
 
@@ -99,18 +101,18 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       final purchase = int.parse(_purchaseCtrl.text.trim());
       final selling = int.parse(_sellingCtrl.text.trim());
       final qty = int.parse(_qtyCtrl.text.trim());
-      final image = _imageCtrl.text.trim();
-      final imageUrl = image.isEmpty ? null : image;
+      final img =
+          _imageCtrl.text.trim().isEmpty ? null : _imageCtrl.text.trim();
 
       if (widget.isEdit) {
         await service.update(
           id: widget.productId!,
           name: name,
-          categoryId: _categoryId,
+          categoryId: _categoryId!,
           purchasePrice: purchase,
           sellingPrice: selling,
           quantity: qty,
-          imageUrl: imageUrl,
+          imageUrl: img,
         );
       } else {
         await service.create(
@@ -119,87 +121,84 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           purchasePrice: purchase,
           sellingPrice: selling,
           quantity: qty,
-          imageUrl: imageUrl,
+          imageUrl: img,
         );
       }
 
-      refreshAfterInventoryChange(ref);
-
       if (!mounted) return;
-      HapticFeedback.lightImpact();
-      _toast(widget.isEdit ? 'Product updated' : 'Product created',
-          kind: AppSnackKind.success);
+      refreshAfterInventoryChangeFromNotifier(ref);
+      _toast(
+        strings.productSaved,
+        kind: AppSnackKind.success,
+      );
       context.pop(true);
     } catch (e) {
-      if (mounted) _toast(_errMsg(e));
+      if (!mounted) return;
+      _toast(_errMsg(e), kind: AppSnackKind.error);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
   Future<void> _confirmDelete() async {
-    final ok = await showDialog<bool>(
+    final strings = ref.read(appStringsProvider);
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Delete product?'),
-          content: const Text(
-            'This permanently removes the product. Products with sales history cannot be deleted.',
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          strings.deleteProduct,
+          style: const TextStyle(
+            fontFamily: AppTheme.fontFamily,
+            fontWeight: FontWeight.w700,
           ),
-          actions: [
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.danger,
-                      ),
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Delete'),
-                    ),
-                  ),
-                ),
-              ],
+        ),
+        content: Text(
+          strings.deleteProductConfirm,
+          style: const TextStyle(fontFamily: AppTheme.fontFamily),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: AppColors.white,
             ),
-          ],
-        );
-      },
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(strings.delete),
+          ),
+        ],
+      ),
     );
-    if (ok != true) return;
+
+    if (confirmed != true) return;
 
     setState(() => _deleting = true);
     try {
       await ref.read(productServiceProvider).delete(widget.productId!);
-      refreshAfterInventoryChange(ref);
       if (!mounted) return;
-      HapticFeedback.mediumImpact();
-      _toast('Product deleted', kind: AppSnackKind.success);
+      refreshAfterInventoryChangeFromNotifier(ref);
+      _toast(
+        strings.productDeleted,
+        kind: AppSnackKind.success,
+      );
       context.pop(true);
     } catch (e) {
       if (!mounted) return;
-      final msg = _errMsg(e);
       final code = _errCode(e);
-      if (code == 'PRODUCT_HAS_SALES' || msg.contains('sales history')) {
+      final msg = _errMsg(e);
+      if (code == 'PRODUCT_HAS_SALES' || code == 'CONFLICT') {
         await showDialog<void>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Cannot delete'),
+            title: Text(strings.deleteProduct),
             content: Text(
               msg.isNotEmpty
                   ? msg
-                  : 'This product has sales history. Set quantity to 0 instead.',
+                  : 'Ce produit a un historique de ventes. Définissez la quantité à 0.',
             ),
             actions: [
               TextButton(
@@ -231,7 +230,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     }
     if (e is ApiException) return e.error.message;
     if (e is NetworkException) return e.message;
-    return 'Request failed';
+    return 'Erreur de requête';
   }
 
   void _toast(String msg, {AppSnackKind kind = AppSnackKind.info}) {
@@ -244,15 +243,16 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final isLight = theme.brightness == Brightness.light;
     final categoriesAsync = ref.watch(categoriesProvider);
     final busy = _saving || _deleting;
+    final strings = ref.watch(appStringsProvider);
 
     return Scaffold(
       backgroundColor: isLight ? AppColors.gray050 : AppColors.black,
       appBar: AppBar(
-        title: Text(widget.isEdit ? 'Edit product' : 'Add product'),
+        title: Text(widget.isEdit ? strings.editProduct : strings.addProduct),
         actions: [
           if (widget.isEdit && _ready && _loadError == null)
             IconButton(
-              tooltip: 'Delete',
+              tooltip: strings.deleteProduct,
               onPressed: busy ? null : _confirmDelete,
               icon: _deleting
                   ? const SizedBox(
@@ -277,7 +277,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                         const SizedBox(height: 16),
                         FilledButton(
                           onPressed: () => context.pop(),
-                          child: const Text('Go back'),
+                          child: Text(strings.cancel),
                         ),
                       ],
                     ),
@@ -291,16 +291,16 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                       TextFormField(
                         controller: _nameCtrl,
                         textInputAction: TextInputAction.next,
-                        decoration: const InputDecoration(
-                          labelText: 'Name',
-                          hintText: 'Nike T-Shirt Black',
+                        decoration: InputDecoration(
+                          labelText: strings.productName,
+                          hintText: 'e.g. T-Shirt Nike',
                         ),
                         validator: (v) {
                           if (v == null || v.trim().isEmpty) {
-                            return 'Name is required';
+                            return strings.fillRequiredFields;
                           }
                           if (v.trim().length > 200) {
-                            return 'Max 200 characters';
+                            return 'Max 200 caractères';
                           }
                           return null;
                         },
@@ -314,12 +314,12 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                         ),
                         data: (cats) {
                           if (cats.isEmpty) {
-                            return const Text('No categories seeded yet.');
+                            return Text(strings.noData);
                           }
                           return DropdownButtonFormField<int>(
                             initialValue: _categoryId,
-                            decoration: const InputDecoration(
-                              labelText: 'Category',
+                            decoration: InputDecoration(
+                              labelText: strings.category,
                             ),
                             items: cats
                                 .map(
@@ -333,7 +333,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                                 ? null
                                 : (v) => setState(() => _categoryId = v),
                             validator: (v) =>
-                                v == null ? 'Category is required' : null,
+                                v == null ? strings.selectCategory : null,
                           );
                         },
                       ),
@@ -347,8 +347,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                               inputFormatters: [
                                 FilteringTextInputFormatter.digitsOnly,
                               ],
-                              decoration: const InputDecoration(
-                                labelText: 'Purchase (DA)',
+                              decoration: InputDecoration(
+                                labelText: strings.purchasePrice,
                               ),
                               validator: _nonNegInt,
                             ),
@@ -361,8 +361,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                               inputFormatters: [
                                 FilteringTextInputFormatter.digitsOnly,
                               ],
-                              decoration: const InputDecoration(
-                                labelText: 'Selling (DA)',
+                              decoration: InputDecoration(
+                                labelText: strings.sellingPrice,
                               ),
                               validator: _nonNegInt,
                             ),
@@ -377,14 +377,14 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                           FilteringTextInputFormatter.digitsOnly,
                         ],
                         decoration: InputDecoration(
-                          labelText: 'Quantity',
+                          labelText: strings.quantity,
                           suffixIcon: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.remove_circle_outline_rounded),
                                 color: isLight ? AppColors.secondary : AppColors.accent,
-                                tooltip: 'Decrease quantity',
+                                tooltip: 'Diminuer',
                                 onPressed: busy
                                     ? null
                                     : () {
@@ -401,7 +401,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                               IconButton(
                                 icon: const Icon(Icons.add_circle_outline_rounded),
                                 color: isLight ? AppColors.secondary : AppColors.accent,
-                                tooltip: 'Increase quantity',
+                                tooltip: 'Augmenter',
                                 onPressed: busy
                                     ? null
                                     : () {
@@ -423,8 +423,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                       TextFormField(
                         controller: _imageCtrl,
                         keyboardType: TextInputType.url,
-                        decoration: const InputDecoration(
-                          labelText: 'Image URL (optional)',
+                        decoration: InputDecoration(
+                          labelText: strings.imageUrlOptional,
                           hintText: 'https://…',
                         ),
                         validator: (v) {
@@ -433,14 +433,14 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                           if (uri == null ||
                               !(uri.isScheme('http') ||
                                   uri.isScheme('https'))) {
-                            return 'Enter a valid http(s) URL';
+                            return 'URL http(s) invalide';
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'Money is stored as whole DA (no decimals).',
+                        strings.moneyNote,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color:
                               isLight ? AppColors.gray500 : AppColors.gray400,
@@ -468,7 +468,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                             ),
                           )
                         : Text(
-                            widget.isEdit ? 'Save changes' : 'Create product',
+                            strings.saveChanges,
                             style: const TextStyle(
                               fontFamily: AppTheme.fontFamily,
                               fontWeight: FontWeight.w700,
@@ -483,10 +483,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   }
 
   String? _nonNegInt(String? v) {
-    if (v == null || v.trim().isEmpty) return 'Required';
+    if (v == null || v.trim().isEmpty) return 'Obligatoire';
     final n = int.tryParse(v.trim());
-    if (n == null) return 'Enter a whole number';
-    if (n < 0) return 'Must be ≥ 0';
+    if (n == null) return 'Entrez un nombre entier';
+    if (n < 0) return 'Doit être ≥ 0';
     return null;
   }
 }

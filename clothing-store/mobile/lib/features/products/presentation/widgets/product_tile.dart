@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/money.dart';
 import '../../models/product.dart';
 
-class ProductTile extends StatelessWidget {
+class ProductTile extends ConsumerWidget {
   const ProductTile({
     super.key,
     required this.product,
@@ -16,14 +18,21 @@ class ProductTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
+    final strings = ref.watch(appStringsProvider);
     final stockColor = product.isOutOfStock
         ? AppColors.danger
         : product.isLowStock
             ? AppColors.warning
             : AppColors.success;
+
+    final stockLabel = product.isOutOfStock
+        ? strings.outOfStock
+        : product.isLowStock
+            ? '${strings.lowStock} (${product.quantity})'
+            : (strings.isFrench ? 'Qté ${product.quantity}' : 'Qty ${product.quantity}');
 
     return Material(
       color: Colors.transparent,
@@ -85,11 +94,7 @@ class ProductTile extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         _StockChip(
-                          label: product.isOutOfStock
-                              ? 'Out'
-                              : product.isLowStock
-                                  ? 'Low · ${product.quantity}'
-                                  : 'Qty ${product.quantity}',
+                          label: stockLabel,
                           color: stockColor,
                         ),
                       ],

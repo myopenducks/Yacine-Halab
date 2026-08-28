@@ -7,6 +7,7 @@ export const createSaleSchema = z.object({
       z.object({
         productId: z.number().int().positive(),
         quantity: z.number().int().min(1),
+        unitPrice: z.coerce.number().int().min(0).optional(),
       }),
     )
     .min(1, 'Sale must have at least 1 item'),

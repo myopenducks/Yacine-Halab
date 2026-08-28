@@ -366,4 +366,27 @@ export class SaleRepository {
     const rows = await this.db.select().from(sales).where(eq(sales.id, id)).limit(1);
     return rows[0] ?? null;
   }
+
+  async deleteSale(id: number): Promise<{ success: boolean }> {
+    return this.transaction(async (tx) => {
+      // 1. Get all sale items for this sale
+      const items = await tx.select().from(saleItems).where(eq(saleItems.saleId, id));
+
+      // 2. Restock products
+      for (const item of items) {
+        await tx
+          .update(products)
+          .set({
+            quantity: sql`${products.quantity} + ${item.quantity}`,
+          })
+          .where(eq(products.id, item.productId));
+      }
+
+      // 3. Delete sale items & sale
+      await tx.delete(saleItems).where(eq(saleItems.saleId, id));
+      await tx.delete(sales).where(eq(sales.id, id));
+
+      return { success: true };
+    });
+  }
 }
