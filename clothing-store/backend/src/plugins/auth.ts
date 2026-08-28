@@ -48,7 +48,7 @@ function stripQuery(url: string | undefined): string {
 function isPublic(req: FastifyRequest): boolean {
   const method = (req.method ?? req.raw.method ?? '').toUpperCase();
   const rawUrl = stripQuery(req.url ?? req.raw.url ?? '').toLowerCase().replace(/\/+$/, '');
-  const routerPath = (req.routerPath ?? '').toLowerCase().replace(/\/+$/, '');
+  const routeUrl = ((req.routeOptions?.url as string | undefined) ?? (req as any).routerPath ?? '').toLowerCase().replace(/\/+$/, '');
 
   return PUBLIC_ROUTES.some((r) => {
     const targetUrl = r.url.toLowerCase().replace(/\/+$/, '');
@@ -56,7 +56,7 @@ function isPublic(req: FastifyRequest): boolean {
     return (
       methodMatches &&
       (rawUrl === targetUrl ||
-        routerPath === targetUrl ||
+        routeUrl === targetUrl ||
         rawUrl.endsWith(targetUrl))
     );
   });
