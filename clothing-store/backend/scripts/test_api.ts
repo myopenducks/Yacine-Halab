@@ -14,6 +14,12 @@ async function test() {
   const catData: any = await catRes.json();
   console.log('Categories:', catData.data);
 
+  const adminProds = await fetch('https://yacine-halab-production.up.railway.app/api/v1/products?page=1&limit=20', {
+    headers: { Authorization: `Bearer ${loginData.data.token}` },
+  });
+  const aProdData: any = await adminProds.json();
+  console.log('Admin products count:', aProdData.data?.total);
+
   // Also check guest_demo
   const guestLogin = await fetch('https://yacine-halab-production.up.railway.app/api/v1/auth/guest', {
     method: 'POST',
