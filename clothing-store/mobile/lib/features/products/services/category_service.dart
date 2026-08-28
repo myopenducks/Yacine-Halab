@@ -21,10 +21,7 @@ class CategoryService {
     );
   }
 
-  Future<Map<String, dynamic>> delete(int id) {
-    return _dio.delete<Map<String, dynamic>>(
-      '/api/v1/categories/$id',
-      dataFromJson: (data) => data,
-    );
+  Future<void> delete(int id) {
+    return _dio.deleteVoid('/api/v1/categories/$id');
   }
 }
