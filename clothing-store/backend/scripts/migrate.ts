@@ -47,20 +47,38 @@ async function main() {
     }
   }
 
-  // Ensure index on categories is composite (user_id, name)
+  // Ensure categories user_id is updated and index is composite (user_id, name)
   try {
+    // 1. Drop any old single-column unique indexes on categories
     const [indexes] = await connection.query<any[]>(
       "SHOW INDEX FROM `categories` WHERE Key_name = 'categories_name_unique'",
     );
-    if (Array.isArray(indexes) && indexes.length === 1 && indexes[0].Column_name === 'name') {
-      console.log('[migrate] dropping legacy single-column categories_name_unique index');
-      await connection.query('ALTER TABLE `categories` DROP INDEX `categories_name_unique`');
-      await connection.query('ALTER TABLE `categories` ADD CONSTRAINT `categories_name_unique` UNIQUE(`user_id`, `name`)');
-      console.log('[migrate] created composite categories_name_unique index on (user_id, name)');
+    if (Array.isArray(indexes) && indexes.length > 0) {
+      const cols = indexes.map((i: any) => i.Column_name);
+      if (!cols.includes('user_id')) {
+        console.log('[migrate] dropping legacy single-column categories_name_unique index');
+        await connection.query('ALTER TABLE `categories` DROP INDEX `categories_name_unique`');
+      }
     }
   } catch (err: any) {
-    console.warn('[migrate] Notice updating categories index:', err.message);
+    console.warn('[migrate] Notice checking categories index:', err.message);
   }
+
+  try {
+    // 2. Fix all existing categories and products without user_id
+    await connection.query('UPDATE `categories` SET `user_id` = 1 WHERE `user_id` IS NULL OR `user_id` = 0');
+    await connection.query('UPDATE `products` SET `user_id` = 1 WHERE `user_id` IS NULL OR `user_id` = 0');
+    await connection.query('UPDATE `sales` SET `user_id` = 1 WHERE `user_id` IS NULL OR `user_id` = 0');
+    console.log('[migrate] updated legacy rows to user_id = 1');
+  } catch (err: any) {
+    console.warn('[migrate] Notice fixing user_id:', err.message);
+  }
+
+  try {
+    // 3. Create composite index (user_id, name)
+    await connection.query('ALTER TABLE `categories` ADD CONSTRAINT `categories_name_unique` UNIQUE(`user_id`, `name`)');
+    console.log('[migrate] created composite categories_name_unique index on (user_id, name)');
+  } catch (_) {}
 
   // Ensure expenses table and indexes exist
   try {
