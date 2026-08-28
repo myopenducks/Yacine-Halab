@@ -127,78 +127,78 @@ async function main() {
     console.warn('[migrate] Notice back-filling sales:', err.message);
   }
 
-  // Auto-seed initial categories and default admin if missing
+  // Auto-seed default admin if missing
+  try {
+    const [existingAdmin] = await connection.query<any[]>('SELECT id FROM `users` WHERE `username` = "admin" LIMIT 1');
+    if (!Array.isArray(existingAdmin) || existingAdmin.length === 0) {
+      const { hash } = await import('argon2');
+      const adminUsername = process.env.SEED_ADMIN_USERNAME ?? 'admin';
+      const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'admin123';
+      const passwordHash = await hash(adminPassword);
+      await connection.query('INSERT INTO `users` (`username`, `password_hash`) VALUES (?, ?)', [
+        adminUsername,
+        passwordHash,
+      ]);
+      console.log(`[migrate] created default admin user (${adminUsername})`);
+    }
+  } catch (err: any) {
+    console.warn('[migrate] Notice creating admin:', err.message);
+  }
+
+  // Ensure default categories & initial products for every user in the system
   const INITIAL_CATEGORIES = ['T-Shirt', 'Shoes', 'Slippers', 'Shorts', 'Pants', 'Sets'];
-  for (const name of INITIAL_CATEGORIES) {
-    try {
-      await db
-        .insert(schema.categories)
-        .values({ name, userId: 1 })
-        .onDuplicateKeyUpdate({ set: { name } });
-    } catch (_) {}
-  }
+  const sampleProducts = [
+    { name: 'T-Shirt Oversize Coton Noir', cat: 'T-Shirt', buy: 1200, sell: 2200, qty: 15 },
+    { name: 'Polo Classique Blanc', cat: 'T-Shirt', buy: 1800, sell: 3000, qty: 10 },
+    { name: 'Jean Slim Bleu Denim', cat: 'Pants', buy: 2500, sell: 4500, qty: 8 },
+    { name: 'Pantalon Cargo Kaki', cat: 'Pants', buy: 2800, sell: 4800, qty: 4 },
+    { name: 'Sneakers Streetwear Blanche', cat: 'Shoes', buy: 4000, sell: 6500, qty: 6 },
+    { name: 'Claquettes Confort Cuir', cat: 'Slippers', buy: 1500, sell: 2500, qty: 12 },
+    { name: 'Short Jogging Gris', cat: 'Shorts', buy: 1400, sell: 2400, qty: 3 },
+    { name: 'Ensemble Sport Tech Noir', cat: 'Sets', buy: 5500, sell: 8500, qty: 7 },
+  ];
 
-  const adminRows = await db.select().from(schema.users).where(eq(schema.users.username, 'admin')).limit(1);
-  let adminId = adminRows[0]?.id;
-  if (!adminId) {
-    const { hash } = await import('argon2');
-    const adminUsername = process.env.SEED_ADMIN_USERNAME ?? 'admin';
-    const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'admin123';
-    const passwordHash = await hash(adminPassword);
-    const [ins] = await db.insert(schema.users).values({
-      username: adminUsername,
-      passwordHash,
-    });
-    adminId = ins.insertId;
-    console.log(`[migrate] created default admin user (${adminUsername}) with id ${adminId}`);
-  }
+  try {
+    const [allUsers] = await connection.query<any[]>('SELECT id FROM `users`');
+    if (Array.isArray(allUsers)) {
+      for (const u of allUsers) {
+        const uId = u.id;
+        const catMap = new Map<string, number>();
 
-  // Ensure initial categories for admin
-  const adminCatMap = new Map<string, number>();
-  for (const name of INITIAL_CATEGORIES) {
-    try {
-      const existingCat = await db.select().from(schema.categories).where(
-        eq(schema.categories.userId, adminId)
-      );
-      const match = existingCat.find(c => c.name === name);
-      if (match) {
-        adminCatMap.set(name, match.id);
-      } else {
-        const [res] = await db.insert(schema.categories).values({ name, userId: adminId });
-        adminCatMap.set(name, res.insertId);
-      }
-    } catch (_) {}
-  }
+        for (const catName of INITIAL_CATEGORIES) {
+          try {
+            await connection.query(
+              'INSERT INTO `categories` (`name`, `user_id`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `name` = VALUES(`name`)',
+              [catName, uId],
+            );
+          } catch (_) {}
+        }
 
-  // If admin has 0 products, seed initial catalog
-  const adminProducts = await db.select().from(schema.products).where(eq(schema.products.userId, adminId)).limit(1);
-  if (adminProducts.length === 0) {
-    const sampleProducts = [
-      { name: 'T-Shirt Oversize Coton Noir', cat: 'T-Shirt', buy: 1200, sell: 2200, qty: 15 },
-      { name: 'Polo Classique Blanc', cat: 'T-Shirt', buy: 1800, sell: 3000, qty: 10 },
-      { name: 'Jean Slim Bleu Denim', cat: 'Pants', buy: 2500, sell: 4500, qty: 8 },
-      { name: 'Pantalon Cargo Kaki', cat: 'Pants', buy: 2800, sell: 4800, qty: 4 },
-      { name: 'Sneakers Streetwear Blanche', cat: 'Shoes', buy: 4000, sell: 6500, qty: 6 },
-      { name: 'Claquettes Confort Cuir', cat: 'Slippers', buy: 1500, sell: 2500, qty: 12 },
-      { name: 'Short Jogging Gris', cat: 'Shorts', buy: 1400, sell: 2400, qty: 3 },
-      { name: 'Ensemble Sport Tech Noir', cat: 'Sets', buy: 5500, sell: 8500, qty: 7 },
-    ];
-    for (const p of sampleProducts) {
-      const catId = adminCatMap.get(p.cat);
-      if (catId) {
-        try {
-          await db.insert(schema.products).values({
-            name: p.name,
-            categoryId: catId,
-            userId: adminId,
-            purchasePrice: p.buy,
-            sellingPrice: p.sell,
-            quantity: p.qty,
-          });
-        } catch (_) {}
+        const [userCats] = await connection.query<any[]>('SELECT id, name FROM `categories` WHERE `user_id` = ?', [uId]);
+        if (Array.isArray(userCats)) {
+          for (const c of userCats) catMap.set(c.name, c.id);
+        }
+
+        const [userProds] = await connection.query<any[]>('SELECT COUNT(*) as count FROM `products` WHERE `user_id` = ?', [uId]);
+        const prodCount = Number(userProds[0]?.count ?? 0);
+        if (prodCount === 0) {
+          for (const p of sampleProducts) {
+            const cId = catMap.get(p.cat);
+            if (cId) {
+              try {
+                await connection.query(
+                  'INSERT INTO `products` (`name`, `category_id`, `user_id`, `purchase_price`, `selling_price`, `quantity`) VALUES (?, ?, ?, ?, ?, ?)',
+                  [p.name, cId, uId, p.buy, p.sell, p.qty],
+                );
+              } catch (_) {}
+            }
+          }
+          console.log(`[migrate] seeded products for user ${uId}`);
+        }
       }
     }
-    console.log('[migrate] seeded default products for admin user');
+  } catch (err: any) {
+    console.warn('[migrate] Notice seeding users catalog:', err.message);
   }
   await connection.end();
   console.log('[migrate] done');

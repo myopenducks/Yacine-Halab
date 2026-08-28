@@ -112,6 +112,15 @@ class AppStrings {
   String get products => isFrench ? 'Produits' : 'Products';
   String get editProduct => isFrench ? 'Modifier le produit' : 'Edit product';
   String get changeCategory => isFrench ? 'Changer de catégorie' : 'Change Category';
+  String get addCategory => isFrench ? 'Ajouter une catégorie' : 'Add category';
+  String get categoryName => isFrench ? 'Nom de la catégorie' : 'Category name';
+  String get manageCategories => isFrench ? 'Gérer les catégories' : 'Manage categories';
+  String get deleteCategory => isFrench ? 'Supprimer la catégorie' : 'Delete category';
+  String get deleteCategoryConfirm => isFrench
+      ? 'Les produits de cette catégorie seront déplacés vers "Autre". Continuer ?'
+      : 'Products in this category will be moved to "Other". Continue?';
+  String get categoryCreated => isFrench ? 'Catégorie créée avec succès' : 'Category created successfully';
+  String get categoryDeleted => isFrench ? 'Catégorie supprimée avec succès' : 'Category deleted successfully';
   String get productName => isFrench ? 'Nom du produit' : 'Product name';
   String get category => isFrench ? 'Catégorie' : 'Category';
   String get selectCategory => isFrench ? 'Sélectionner une catégorie' : 'Select a category';

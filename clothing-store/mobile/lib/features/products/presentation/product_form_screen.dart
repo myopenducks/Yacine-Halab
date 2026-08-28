@@ -137,6 +137,74 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     }
   }
 
+  Future<void> _quickAddCategory() async {
+    final strings = ref.read(appStringsProvider);
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final ctrl = TextEditingController();
+
+    final created = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isLight ? AppColors.white : AppColors.cardDark,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.category_rounded, color: AppColors.primary, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(strings.addCategory, style: const TextStyle(fontSize: 18))),
+          ],
+        ),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            hintText: strings.categoryName,
+            filled: true,
+            fillColor: isLight ? AppColors.gray100 : AppColors.gray900,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+          ),
+          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: Text(strings.confirm),
+          ),
+        ],
+      ),
+    );
+
+    if (created != null && created.isNotEmpty && mounted) {
+      try {
+        final newCat = await ref.read(categoryServiceProvider).create(created);
+        ref.invalidate(categoriesProvider);
+        refreshAfterInventoryChange(ref);
+        if (mounted) {
+          setState(() {
+            _categoryId = newCat.id;
+          });
+          _toast(strings.categoryCreated, kind: AppSnackKind.success);
+        }
+      } catch (e) {
+        if (mounted) {
+          _toast('Erreur lors de la création de la catégorie', kind: AppSnackKind.error);
+        }
+      }
+    }
+  }
+
   Future<void> _confirmDelete() async {
     final strings = ref.read(appStringsProvider);
     final isLight = Theme.of(context).brightness == Brightness.light;
@@ -423,27 +491,44 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                           style: const TextStyle(color: AppColors.danger),
                         ),
                         data: (cats) {
-                          if (cats.isEmpty) {
-                            return Text(strings.noData);
-                          }
-                          return DropdownButtonFormField<int>(
-                            initialValue: _categoryId,
-                            decoration: InputDecoration(
-                              labelText: strings.category,
-                            ),
-                            items: cats
-                                .map(
-                                  (c) => DropdownMenuItem(
-                                    value: c.id,
-                                    child: Text(c.name),
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<int>(
+                                  initialValue: _categoryId,
+                                  decoration: InputDecoration(
+                                    labelText: strings.category,
                                   ),
-                                )
-                                .toList(growable: false),
-                            onChanged: busy
-                                ? null
-                                : (v) => setState(() => _categoryId = v),
-                            validator: (v) =>
-                                v == null ? strings.selectCategory : null,
+                                  items: cats
+                                      .map(
+                                        (c) => DropdownMenuItem(
+                                          value: c.id,
+                                          child: Text(c.name),
+                                        ),
+                                      )
+                                      .toList(growable: false),
+                                  onChanged: busy
+                                      ? null
+                                      : (v) => setState(() => _categoryId = v),
+                                  validator: (v) =>
+                                      v == null ? strings.selectCategory : null,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: SizedBox(
+                                  height: 52,
+                                  width: 52,
+                                  child: IconButton.filledTonal(
+                                    tooltip: strings.addCategory,
+                                    icon: const Icon(Icons.add_rounded),
+                                    onPressed: busy ? null : _quickAddCategory,
+                                  ),
+                                ),
+                              ),
+                            ],
                           );
                         },
                       ),

@@ -12,4 +12,19 @@ class CategoryService {
       itemFromJson: Category.fromJson,
     );
   }
+
+  Future<Category> create(String name) {
+    return _dio.post<Category>(
+      '/api/v1/categories',
+      body: {'name': name.trim()},
+      dataFromJson: Category.fromJson,
+    );
+  }
+
+  Future<Map<String, dynamic>> delete(int id) {
+    return _dio.delete<Map<String, dynamic>>(
+      '/api/v1/categories/$id',
+      dataFromJson: (data) => data,
+    );
+  }
 }

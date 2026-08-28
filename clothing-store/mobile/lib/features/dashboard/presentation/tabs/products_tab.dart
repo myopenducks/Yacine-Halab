@@ -139,6 +139,195 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
     }
   }
 
+  Future<void> _showCreateCategoryDialog() async {
+    final strings = ref.read(appStringsProvider);
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final ctrl = TextEditingController();
+
+    final created = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isLight ? AppColors.white : AppColors.cardDark,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.category_rounded, color: AppColors.primary, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(strings.addCategory, style: const TextStyle(fontSize: 18))),
+          ],
+        ),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            hintText: strings.categoryName,
+            filled: true,
+            fillColor: isLight ? AppColors.gray100 : AppColors.gray900,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+          ),
+          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: Text(strings.confirm),
+          ),
+        ],
+      ),
+    );
+
+    if (created != null && created.isNotEmpty && mounted) {
+      try {
+        await ref.read(categoryServiceProvider).create(created);
+        ref.invalidate(categoriesProvider);
+        refreshAfterInventoryChange(ref);
+        if (mounted) {
+          showAppSnackBar(context, strings.categoryCreated, kind: AppSnackKind.success);
+        }
+      } catch (e) {
+        if (mounted) {
+          showAppSnackBar(context, 'Erreur lors de la création de la catégorie', kind: AppSnackKind.error);
+        }
+      }
+    }
+  }
+
+  Future<void> _showManageCategoriesSheet(List<Category> categories) async {
+    final strings = ref.read(appStringsProvider);
+    final isLight = Theme.of(context).brightness == Brightness.light;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isLight ? AppColors.white : AppColors.cardDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: isLight ? AppColors.gray300 : AppColors.gray700,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          strings.manageCategories,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        FilledButton.tonalIcon(
+                          icon: const Icon(Icons.add, size: 18),
+                          label: Text(strings.addCategory),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _showCreateCategoryDialog();
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Flexible(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: categories.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, idx) {
+                          final c = categories[idx];
+                          final isFallback = c.name.toLowerCase() == 'autre' || c.name.toLowerCase() == 'other';
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: (isLight ? AppColors.gray100 : AppColors.gray800),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.folder_outlined, size: 20),
+                            ),
+                            title: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            trailing: isFallback
+                                ? null
+                                : IconButton(
+                                    icon: const Icon(Icons.delete_outline, color: AppColors.danger, size: 20),
+                                    onPressed: () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (cctx) => AlertDialog(
+                                          title: Text(strings.deleteCategory),
+                                          content: Text(strings.deleteCategoryConfirm),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(cctx, false),
+                                              child: Text(strings.cancel),
+                                            ),
+                                            FilledButton(
+                                              style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+                                              onPressed: () => Navigator.pop(cctx, true),
+                                              child: Text(strings.delete),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+
+                                      if (confirm == true && mounted) {
+                                        try {
+                                          await ref.read(categoryServiceProvider).delete(c.id);
+                                          ref.invalidate(categoriesProvider);
+                                          refreshAfterInventoryChange(ref);
+                                          if (ctx.mounted) Navigator.pop(ctx);
+                                          if (mounted) {
+                                            showAppSnackBar(context, strings.categoryDeleted, kind: AppSnackKind.success);
+                                          }
+                                        } catch (_) {
+                                          if (mounted) {
+                                            showAppSnackBar(context, 'Erreur lors de la suppression', kind: AppSnackKind.error);
+                                          }
+                                        }
+                                      }
+                                    },
+                                  ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -300,6 +489,19 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
                       );
                       yield const SizedBox(width: 8);
                     }),
+                    _FilterChip(
+                      label: strings.addCategory,
+                      icon: Icons.add,
+                      selected: false,
+                      onTap: _showCreateCategoryDialog,
+                    ),
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: strings.manageCategories,
+                      icon: Icons.tune_rounded,
+                      selected: false,
+                      onTap: () => _showManageCategoriesSheet(cats),
+                    ),
                   ],
                 );
               },
