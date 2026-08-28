@@ -45,8 +45,9 @@ export class AuthService {
       });
     }
 
-    const payload: { sub: string; username: string } = {
+    const payload: { sub: string; id: number; username: string } = {
       sub: String(user.id),
+      id: user.id,
       username: user.username,
     };
     const token = await this.fastify.jwt.sign(payload);
@@ -67,8 +68,9 @@ export class AuthService {
     const passwordHash = await hash(dto.password);
     const user = await this.repo.create(dto.username, passwordHash);
 
-    const payload: { sub: string; username: string } = {
+    const payload: { sub: string; id: number; username: string } = {
       sub: String(user.id),
+      id: user.id,
       username: user.username,
     };
     const token = await this.fastify.jwt.sign(payload);
@@ -103,8 +105,9 @@ export class AuthService {
 
   async guest(): Promise<LoginResponse> {
     const user = await this.repo.createGuest();
-    const payload: { sub: string; username: string } = {
+    const payload: { sub: string; id: number; username: string } = {
       sub: String(user.id),
+      id: user.id,
       username: user.username,
     };
     const token = await this.fastify.jwt.sign(payload);

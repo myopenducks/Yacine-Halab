@@ -80,13 +80,14 @@ export async function registerAuth(app: FastifyInstance): Promise<void> {
           message: 'Invalid token payload',
         });
       }
-      const rawSub = (decoded as { sub: string | number }).sub;
-      const sub = typeof rawSub === 'string' ? Number(rawSub) : rawSub;
+      const rawSub = (decoded as { sub: string | number; id?: string | number }).sub ?? (decoded as any).id;
+      const sub = typeof rawSub === 'string' ? Number(rawSub) : Number(rawSub);
       const normalized: JwtPayload = {
         sub,
         username: (decoded as { username: string }).username,
       };
       (req as unknown as { __jwt: JwtPayload }).__jwt = normalized;
+      (req as any).user = { id: sub, sub, username: normalized.username };
     } catch (err) {
       if (err instanceof AppError) throw err;
       const msg =
