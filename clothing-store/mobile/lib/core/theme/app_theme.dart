@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTheme {
   AppTheme._();
 
-  static const String fontFamily = 'Inter';
+  static const String fontFamily = 'Outfit';
 
   static TextTheme _buildTextTheme(Color onSurface) {
-    const base = TextStyle(
-      fontFamily: fontFamily,
+    final base = GoogleFonts.outfit(
       decoration: TextDecoration.none,
       textBaseline: TextBaseline.alphabetic,
     );
