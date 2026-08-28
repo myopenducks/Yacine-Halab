@@ -164,22 +164,26 @@ export class DashboardRepository {
   async getCategoryQuantities(userId: number): Promise<
     Array<{ categoryId: number; name: string; quantity: number }>
   > {
-    const rows = await this.db
-      .select({
-        categoryId: categories.id,
-        name: categories.name,
-        quantity: sql<number>`COALESCE(SUM(${products.quantity}), 0)`,
-      })
-      .from(categories)
-      .leftJoin(products, and(eq(products.categoryId, categories.id), eq(products.userId, userId)))
-      .where(eq(categories.userId, userId))
-      .groupBy(categories.id)
-      .orderBy(desc(categories.id));
-    return rows.map((r) => ({
-      categoryId: r.categoryId,
-      name: r.name,
-      quantity: Number(r.quantity ?? 0),
-    }));
+    try {
+      const rows = await this.db
+        .select({
+          categoryId: categories.id,
+          name: categories.name,
+          quantity: sql<number>`COALESCE(SUM(${products.quantity}), 0)`,
+        })
+        .from(categories)
+        .leftJoin(products, and(eq(products.categoryId, categories.id), eq(products.userId, userId)))
+        .where(eq(categories.userId, userId))
+        .groupBy(categories.id, categories.name)
+        .orderBy(desc(categories.id));
+      return rows.map((r) => ({
+        categoryId: r.categoryId,
+        name: r.name,
+        quantity: Number(r.quantity ?? 0),
+      }));
+    } catch (_) {
+      return [];
+    }
   }
 
   async getSummary(range: ResolvedRange, userId: number): Promise<{

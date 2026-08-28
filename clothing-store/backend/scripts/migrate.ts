@@ -84,6 +84,43 @@ async function main() {
     console.warn('[migrate] Notice creating expenses table:', err.message);
   }
 
+  // Ensure sales.total_amount and sales.paid_amount columns exist (added for debt tracking)
+  const salesAlters = [
+    "ALTER TABLE `sales` ADD COLUMN `total_amount` int NOT NULL DEFAULT 0",
+    "ALTER TABLE `sales` ADD COLUMN `paid_amount` int NOT NULL DEFAULT 0",
+  ];
+  for (const sql of salesAlters) {
+    try {
+      await connection.query(sql);
+      console.log(`[migrate] applied: ${sql}`);
+    } catch (err: any) {
+      if (err?.code === 'ER_DUP_FIELDNAME' || err?.message?.includes('Duplicate column')) {
+        // already exists, skip
+      } else {
+        console.warn('[migrate] Notice:', err.message);
+      }
+    }
+  }
+
+  // Back-fill existing sales where total_amount is 0: sum from sale_items
+  try {
+    await connection.query(`
+      UPDATE \`sales\` s
+      SET s.\`total_amount\` = (
+        SELECT COALESCE(SUM(si.\`price\` * si.\`quantity\`), 0)
+        FROM \`sale_items\` si WHERE si.\`sale_id\` = s.\`id\`
+      ),
+      s.\`paid_amount\` = (
+        SELECT COALESCE(SUM(si.\`price\` * si.\`quantity\`), 0)
+        FROM \`sale_items\` si WHERE si.\`sale_id\` = s.\`id\`
+      )
+      WHERE s.\`total_amount\` = 0
+    `);
+    console.log('[migrate] back-filled sales total_amount/paid_amount');
+  } catch (err: any) {
+    console.warn('[migrate] Notice back-filling sales:', err.message);
+  }
+
   // Auto-seed initial categories and default admin if missing
   const INITIAL_CATEGORIES = ['T-Shirt', 'Shoes', 'Slippers', 'Shorts', 'Pants', 'Sets'];
   for (const name of INITIAL_CATEGORIES) {

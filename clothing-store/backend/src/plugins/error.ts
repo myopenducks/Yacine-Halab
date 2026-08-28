@@ -44,6 +44,7 @@ export async function registerErrorHandling(app: FastifyInstance): Promise<void>
         ? ((err as { statusCode: number }).statusCode as number)
         : 500;
 
+    console.error('[UNHANDLED_ERROR]', err);
     app.log.error?.({ err }, 'unhandled error');
 
     return reply
