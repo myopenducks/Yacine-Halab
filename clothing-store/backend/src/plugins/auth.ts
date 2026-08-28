@@ -47,10 +47,19 @@ function stripQuery(url: string | undefined): string {
 
 function isPublic(req: FastifyRequest): boolean {
   const method = (req.method ?? req.raw.method ?? '').toUpperCase();
-  const url = stripQuery(req.url ?? req.raw.url ?? '');
-  return PUBLIC_ROUTES.some(
-    (r) => r.method.toUpperCase() === method && r.url === url,
-  );
+  const rawUrl = stripQuery(req.url ?? req.raw.url ?? '').toLowerCase().replace(/\/+$/, '');
+  const routerPath = (req.routerPath ?? '').toLowerCase().replace(/\/+$/, '');
+
+  return PUBLIC_ROUTES.some((r) => {
+    const targetUrl = r.url.toLowerCase().replace(/\/+$/, '');
+    const methodMatches = r.method.toUpperCase() === method;
+    return (
+      methodMatches &&
+      (rawUrl === targetUrl ||
+        routerPath === targetUrl ||
+        rawUrl.endsWith(targetUrl))
+    );
+  });
 }
 
 export async function registerAuth(app: FastifyInstance): Promise<void> {
