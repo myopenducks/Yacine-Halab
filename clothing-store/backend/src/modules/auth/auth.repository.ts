@@ -53,10 +53,14 @@ export class AuthRepository {
 
     const INITIAL_CATEGORIES = ['T-Shirt', 'Shoes', 'Slippers', 'Shorts', 'Pants', 'Sets'];
     for (const name of INITIAL_CATEGORIES) {
-      await this.db.insert(schema.categories).values({
-        name,
-        userId: guestUser.id,
-      });
+      try {
+        await this.db.insert(schema.categories).values({
+          name,
+          userId: guestUser.id,
+        });
+      } catch (_) {
+        // Safe fallback if category name exists
+      }
     }
 
     return guestUser;

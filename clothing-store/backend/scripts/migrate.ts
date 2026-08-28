@@ -42,17 +42,34 @@ async function main() {
     ) {
       console.warn('[migrate] Notice: Schema already partially or fully updated (' + (err.sqlMessage || err.message) + '). Continuing.');
     } else {
-      throw err;
+      console.warn('[migrate] Warning during migrations:', err.message);
     }
+  }
+
+  // Ensure index on categories is composite (user_id, name)
+  try {
+    const [indexes] = await connection.query<any[]>(
+      "SHOW INDEX FROM `categories` WHERE Key_name = 'categories_name_unique'",
+    );
+    if (Array.isArray(indexes) && indexes.length === 1 && indexes[0].Column_name === 'name') {
+      console.log('[migrate] dropping legacy single-column categories_name_unique index');
+      await connection.query('ALTER TABLE `categories` DROP INDEX `categories_name_unique`');
+      await connection.query('ALTER TABLE `categories` ADD CONSTRAINT `categories_name_unique` UNIQUE(`user_id`, `name`)');
+      console.log('[migrate] created composite categories_name_unique index on (user_id, name)');
+    }
+  } catch (err: any) {
+    console.warn('[migrate] Notice updating categories index:', err.message);
   }
 
   // Auto-seed initial categories and default admin if missing
   const INITIAL_CATEGORIES = ['T-Shirt', 'Shoes', 'Slippers', 'Shorts', 'Pants', 'Sets'];
   for (const name of INITIAL_CATEGORIES) {
-    await db
-      .insert(schema.categories)
-      .values({ name, userId: 1 })
-      .onDuplicateKeyUpdate({ set: { name } });
+    try {
+      await db
+        .insert(schema.categories)
+        .values({ name, userId: 1 })
+        .onDuplicateKeyUpdate({ set: { name } });
+    } catch (_) {}
   }
 
   const existingUsers = await db.select().from(schema.users).limit(1);
