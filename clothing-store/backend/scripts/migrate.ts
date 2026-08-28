@@ -61,6 +61,29 @@ async function main() {
     console.warn('[migrate] Notice updating categories index:', err.message);
   }
 
+  // Ensure expenses table and indexes exist
+  try {
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`expenses\` (
+        \`id\` serial AUTO_INCREMENT NOT NULL,
+        \`user_id\` bigint unsigned NOT NULL,
+        \`title\` varchar(150) NOT NULL,
+        \`recipient_name\` varchar(120),
+        \`category\` varchar(60) NOT NULL DEFAULT 'other',
+        \`amount\` int NOT NULL,
+        \`notes\` varchar(500),
+        \`expense_date\` timestamp NOT NULL DEFAULT (now()),
+        \`created_at\` timestamp NOT NULL DEFAULT (now()),
+        \`updated_at\` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT \`expenses_id\` PRIMARY KEY(\`id\`),
+        CONSTRAINT \`expenses_user_id_users_id_fk\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE cascade ON UPDATE no action
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+    console.log('[migrate] verified expenses table exists');
+  } catch (err: any) {
+    console.warn('[migrate] Notice creating expenses table:', err.message);
+  }
+
   // Auto-seed initial categories and default admin if missing
   const INITIAL_CATEGORIES = ['T-Shirt', 'Shoes', 'Slippers', 'Shorts', 'Pants', 'Sets'];
   for (const name of INITIAL_CATEGORIES) {

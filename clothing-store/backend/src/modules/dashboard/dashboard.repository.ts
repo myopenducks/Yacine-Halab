@@ -129,24 +129,36 @@ export class DashboardRepository {
   }
 
   async getExpenses(range: ResolvedRange, userId: number): Promise<number> {
-    const res = await this.expenseRepo.aggregateForPeriod({
-      from: range.from,
-      to: range.to,
-      userId,
-    });
-    return res.totalExpensesDA;
+    try {
+      const res = await this.expenseRepo.aggregateForPeriod({
+        from: range.from,
+        to: range.to,
+        userId,
+      });
+      return res.totalExpensesDA;
+    } catch (_) {
+      return 0;
+    }
   }
 
   async getLowStockCount(userId: number): Promise<number> {
-    const rows = await this.db
-      .select({ value: count(products.id) })
-      .from(products)
-      .where(and(lte(products.quantity, LOW_STOCK_THRESHOLD), eq(products.userId, userId)));
-    return Number(rows[0]?.value ?? 0);
+    try {
+      const rows = await this.db
+        .select({ value: count(products.id) })
+        .from(products)
+        .where(and(lte(products.quantity, LOW_STOCK_THRESHOLD), eq(products.userId, userId)));
+      return Number(rows[0]?.value ?? 0);
+    } catch (_) {
+      return 0;
+    }
   }
 
   async getDebts(userId: number): Promise<{ unpaidDebtCount: number; totalUnpaidDebtDA: number }> {
-    return this.saleRepo.aggregateDebts(userId);
+    try {
+      return await this.saleRepo.aggregateDebts(userId);
+    } catch (_) {
+      return { unpaidDebtCount: 0, totalUnpaidDebtDA: 0 };
+    }
   }
 
   async getCategoryQuantities(userId: number): Promise<
