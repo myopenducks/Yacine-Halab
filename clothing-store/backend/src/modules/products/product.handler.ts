@@ -41,4 +41,10 @@ export class ProductHandler {
     await this.service.delete(id);
     return ok(null);
   }
+
+  async bulkCategory(req: FastifyRequest) {
+    const dto = (await import('./product.schema')).bulkCategorySchema.parse(req.body);
+    const result = await this.service.bulkUpdateCategory(dto);
+    return ok(result);
+  }
 }

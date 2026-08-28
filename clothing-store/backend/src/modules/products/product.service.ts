@@ -118,4 +118,9 @@ export class ProductService {
       throw err;
     }
   }
+
+  async bulkUpdateCategory(dto: { productIds: number[]; categoryId: number }): Promise<{ success: boolean; affectedCount: number }> {
+    const affected = await this.repo.bulkUpdateCategory(dto.productIds, dto.categoryId);
+    return { success: true, affectedCount: affected };
+  }
 }

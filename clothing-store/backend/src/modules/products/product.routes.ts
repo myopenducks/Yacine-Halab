@@ -44,4 +44,12 @@ export function registerProductRoutes(
       return reply.status(204).send(result);
     },
   );
+
+  app.post(
+    '/api/v1/products/bulk-category',
+    async (req, reply) => {
+      const result = await handler.bulkCategory(req);
+      return reply.status(200).send(result);
+    },
+  );
 }

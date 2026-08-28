@@ -25,4 +25,23 @@ export class CategoryService {
     }
     return toPublic(row);
   }
+
+  async create(dto: { name: string }): Promise<PublicCategory> {
+    const existing = await this.repo.findByName(dto.name);
+    if (existing) {
+      return toPublic(existing);
+    }
+    const created = await this.repo.create(dto.name);
+    return toPublic(created);
+  }
+
+  async delete(id: number): Promise<{ success: boolean; movedProductsCount: number; message: string }> {
+    await this.getById(id);
+    const result = await this.repo.deleteAndReassign(id);
+    return {
+      success: true,
+      movedProductsCount: result.movedProductsCount,
+      message: `Category deleted. ${result.movedProductsCount} product(s) moved to "Autre".`,
+    };
+  }
 }

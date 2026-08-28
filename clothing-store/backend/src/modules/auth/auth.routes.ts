@@ -13,6 +13,22 @@ export function registerAuthRoutes(
     },
   );
 
+  app.post(
+    '/api/v1/auth/register',
+    async (req, reply) => {
+      const result = await handler.register(req);
+      return reply.status(201).send(result);
+    },
+  );
+
+  app.post(
+    '/api/v1/auth/change-password',
+    async (req, reply) => {
+      const result = await handler.changePassword(req);
+      return reply.status(200).send(result);
+    },
+  );
+
   app.get(
     '/api/v1/auth/me',
     async (req, reply) => {

@@ -39,6 +39,13 @@ export const updateProductSchema = z.object({
 
 export type UpdateProductDto = z.infer<typeof updateProductSchema>;
 
+export const bulkCategorySchema = z.object({
+  productIds: z.array(z.number().int().positive()).min(1),
+  categoryId: z.number().int().positive(),
+});
+
+export type BulkCategoryDto = z.infer<typeof bulkCategorySchema>;
+
 export interface PublicProduct {
   id: number;
   name: string;

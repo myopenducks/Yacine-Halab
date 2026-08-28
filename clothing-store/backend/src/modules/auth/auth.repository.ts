@@ -24,4 +24,20 @@ export class AuthRepository {
       .limit(1);
     return rows[0] ?? null;
   }
+
+  async create(username: string, passwordHash: string): Promise<User> {
+    const [result] = await this.db.insert(users).values({
+      username,
+      passwordHash,
+    });
+    const created = await this.findById(result.insertId);
+    return created!;
+  }
+
+  async updatePassword(id: number, passwordHash: string): Promise<void> {
+    await this.db
+      .update(users)
+      .set({ passwordHash })
+      .where(eq(users.id, id));
+  }
 }

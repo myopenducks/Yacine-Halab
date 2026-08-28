@@ -1,5 +1,5 @@
 import type { MySql2Database } from 'drizzle-orm/mysql2';
-import { and, count, desc, eq, gt, like, lte } from 'drizzle-orm';
+import { and, count, desc, eq, gt, inArray, like, lte } from 'drizzle-orm';
 import * as schema from '../../db';
 import { products } from '../../db/schema/products';
 import { categories } from '../../db/schema/categories';
@@ -164,6 +164,15 @@ export class ProductRepository {
 
   async delete(id: number): Promise<number> {
     const result = await this.db.delete(products).where(eq(products.id, id));
+    return Number(result[0].affectedRows ?? 0);
+  }
+
+  async bulkUpdateCategory(productIds: number[], categoryId: number): Promise<number> {
+    if (productIds.length === 0) return 0;
+    const result = await this.db
+      .update(products)
+      .set({ categoryId })
+      .where(inArray(products.id, productIds));
     return Number(result[0].affectedRows ?? 0);
   }
 }
