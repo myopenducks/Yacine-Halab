@@ -354,18 +354,41 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
               icon: const Icon(Icons.close),
               onPressed: () => _toggleSelectionMode(null),
             )
-          else if (list.total > 0)
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Center(
-                child: Text(
-                  '${list.total}',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: isLight ? AppColors.gray500 : AppColors.gray400,
+          else ...[
+            IconButton(
+              tooltip: strings.addCategory,
+              icon: const Icon(Icons.create_new_folder_outlined),
+              onPressed: _showCreateCategoryDialog,
+            ),
+            IconButton(
+              tooltip: strings.manageCategories,
+              icon: const Icon(Icons.category_outlined),
+              onPressed: () {
+                final cats = ref.read(categoriesProvider).valueOrNull ?? [];
+                _showManageCategoriesSheet(cats);
+              },
+            ),
+            if (list.total > 0)
+              Padding(
+                padding: const EdgeInsets.only(right: 12, left: 4),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: (isLight ? AppColors.gray200 : AppColors.gray800),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${list.total}',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: isLight ? AppColors.gray700 : AppColors.gray300,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+          ],
         ],
       ),
       body: Column(
