@@ -18,13 +18,14 @@ class ClothingStoreApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final locale = ref.watch(localeProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
       title: 'Boutique Store',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.light, // Boutique is always light
+      themeMode: themeMode,
       locale: locale,
       supportedLocales: const [
         Locale('fr'),
