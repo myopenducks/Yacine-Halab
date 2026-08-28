@@ -84,10 +84,15 @@ async function main() {
     console.warn('[migrate] Notice creating expenses table:', err.message);
   }
 
-  // Ensure sales.total_amount and sales.paid_amount columns exist (added for debt tracking)
+  // Ensure columns exist on sales table
   const salesAlters = [
+    "ALTER TABLE `sales` ADD COLUMN `user_id` bigint unsigned NOT NULL DEFAULT 1",
     "ALTER TABLE `sales` ADD COLUMN `total_amount` int NOT NULL DEFAULT 0",
     "ALTER TABLE `sales` ADD COLUMN `paid_amount` int NOT NULL DEFAULT 0",
+    "ALTER TABLE `sales` ADD COLUMN `customer_name` varchar(120) NULL",
+    "ALTER TABLE `sales` ADD COLUMN `notes` varchar(500) NULL",
+    "ALTER TABLE `products` ADD COLUMN `user_id` bigint unsigned NOT NULL DEFAULT 1",
+    "ALTER TABLE `categories` ADD COLUMN `user_id` bigint unsigned NOT NULL DEFAULT 1",
   ];
   for (const sql of salesAlters) {
     try {
@@ -97,7 +102,7 @@ async function main() {
       if (err?.code === 'ER_DUP_FIELDNAME' || err?.message?.includes('Duplicate column')) {
         // already exists, skip
       } else {
-        console.warn('[migrate] Notice:', err.message);
+        console.warn('[migrate] Notice column check:', err.message);
       }
     }
   }
@@ -107,11 +112,11 @@ async function main() {
     await connection.query(`
       UPDATE \`sales\` s
       SET s.\`total_amount\` = (
-        SELECT COALESCE(SUM(si.\`price\` * si.\`quantity\`), 0)
+        SELECT COALESCE(SUM(si.\`unit_price\` * si.\`quantity\`), 0)
         FROM \`sale_items\` si WHERE si.\`sale_id\` = s.\`id\`
       ),
       s.\`paid_amount\` = (
-        SELECT COALESCE(SUM(si.\`price\` * si.\`quantity\`), 0)
+        SELECT COALESCE(SUM(si.\`unit_price\` * si.\`quantity\`), 0)
         FROM \`sale_items\` si WHERE si.\`sale_id\` = s.\`id\`
       )
       WHERE s.\`total_amount\` = 0
