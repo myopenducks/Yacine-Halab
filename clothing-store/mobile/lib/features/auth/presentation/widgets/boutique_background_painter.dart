@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 /// (hangers, tables, shirts, trousers, gift boxes, socks, and contour flourishes).
 class BoutiqueBackgroundPainter extends CustomPainter {
   const BoutiqueBackgroundPainter({
-    this.strokeColor = const Color(0xFF5A463B),
-    this.opacity = 0.40,
+    this.strokeColor = const Color(0xFF2C1A11),
+    this.opacity = 0.13,
   });
 
   final Color strokeColor;
@@ -16,7 +16,7 @@ class BoutiqueBackgroundPainter extends CustomPainter {
     final paint = Paint()
       ..color = strokeColor.withValues(alpha: opacity)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.3
+      ..strokeWidth = 0.95
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 

@@ -8,7 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../auth_provider.dart';
 import 'widgets/boutique_background_painter.dart';
 
-/// Exact implementation of the luxury Boutique Inventory Login Screen.
+/// Pixel-perfect luxury Boutique Inventory Login Screen.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -24,10 +24,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _obscure = true;
   bool _loading = false;
 
+  // ── Precise Color Palette ──
   static const Color _bgCream = Color(0xFFFBF8F1);
-  static const Color _darkEspresso = Color(0xFF2D1E18);
-  static const Color _mutedBrown = Color(0xFF6E5D54);
-  static const Color _hintBrown = Color(0xFF8C7A70);
+  static const Color _deepEspresso = Color(0xFF2C1A11);
 
   @override
   void initState() {
@@ -83,26 +82,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       backgroundColor: _bgCream,
       body: Stack(
         children: [
-          // ── Background Layer: Line-art Boutique Illustrations ──
+          // ── Layer 1: Background Color (Canvas Area) ──
+          const Positioned.fill(
+            child: ColoredBox(color: _bgCream),
+          ),
+
+          // ── Layer 2: Exact Line-Art Boutique Background Pattern ──
           const Positioned.fill(
             child: CustomPaint(
               painter: BoutiqueBackgroundPainter(
-                strokeColor: _mutedBrown,
-                opacity: 0.38,
+                strokeColor: _deepEspresso,
+                opacity: 0.13,
               ),
             ),
           ),
 
-          // ── Interactive UI Content Layer ──
+          // ── Layer 3: Interactive UI Elements ──
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
+                      minHeight: constraints.maxHeight - 40,
                     ),
                     child: IntrinsicHeight(
                       child: Form(
@@ -111,37 +115,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const SizedBox(height: 120),
+                              const SizedBox(height: 110),
 
                               // ── Header Typography ──
                               Text(
                                 'BOUTIQUE\nINVENTORY',
                                 style: GoogleFonts.playfairDisplay(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1.8,
-                                  color: _darkEspresso,
-                                  height: 1.15,
+                                  fontSize: 34.0,
+                                  fontWeight: FontWeight.bold,
+                                  color: _deepEspresso,
+                                  height: 1.12,
+                                  letterSpacing: 1.2,
                                 ),
                               ),
                               const SizedBox(height: 10),
                               Text(
                                 'Management & Sales Suite',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 16,
+                                style: GoogleFonts.inter(
+                                  fontSize: 18.0,
                                   fontWeight: FontWeight.w400,
-                                  color: _mutedBrown,
+                                  color: _deepEspresso,
                                   letterSpacing: 0.2,
                                 ),
                               ),
 
-                              const SizedBox(height: 48),
+                              const SizedBox(height: 52),
 
-                              // ── Username Input Field ──
+                              // ── Username Input Field (Quill Icon) ──
                               _BoutiqueTextField(
                                 controller: _usernameCtrl,
-                                hintText: strings.username,
-                                prefixIcon: Icons.edit_outlined,
+                                hintText: strings.isFrench ? strings.username : 'username',
+                                prefixIconWidget: const QuillFeatherIcon(
+                                  color: _deepEspresso,
+                                  size: 18,
+                                ),
                                 textInputAction: TextInputAction.next,
                                 autofillHints: const [AutofillHints.username],
                                 onFieldSubmitted: (_) {
@@ -155,14 +162,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 },
                               ),
 
-                              const SizedBox(height: 14),
+                              const SizedBox(height: 16),
 
-                              // ── Password Input Field ──
+                              // ── Password Input Field (Key Icon + Eye Toggle) ──
                               _BoutiqueTextField(
                                 controller: _passwordCtrl,
                                 focusNode: _passwordFocus,
                                 hintText: '••••••••',
-                                prefixIcon: Icons.vpn_key_outlined,
+                                prefixIconWidget: const Icon(
+                                  Icons.vpn_key_outlined,
+                                  color: _deepEspresso,
+                                  size: 19,
+                                ),
                                 obscureText: _obscure,
                                 textInputAction: TextInputAction.done,
                                 autofillHints: const [AutofillHints.password],
@@ -172,8 +183,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     _obscure
                                         ? Icons.visibility_off_outlined
                                         : Icons.visibility_outlined,
-                                    color: _mutedBrown,
-                                    size: 18,
+                                    color: _deepEspresso.withValues(alpha: 0.7),
+                                    size: 20,
                                   ),
                                   onPressed: () =>
                                       setState(() => _obscure = !_obscure),
@@ -197,38 +208,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 _BoutiqueErrorBanner(message: error),
                               ],
 
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 26),
 
-                              // ── SIGN IN Button ──
+                              // ── SIGN IN Button (Metallic Copper Gradient) ──
                               _CopperGradientButton(
                                 label: strings.isFrench ? 'SE CONNECTER' : 'SIGN IN',
                                 loading: _loading,
                                 onPressed: _loading ? null : _submit,
                               ),
 
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 18),
 
-                              // ── Continue as Guest Link ──
+                              // ── Continue as Guest Underlined Link ──
                               Center(
                                 child: TextButton(
                                   onPressed: _loading ? null : _loginAsGuest,
                                   style: TextButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 16,
-                                      vertical: 8,
+                                      vertical: 6,
                                     ),
-                                    foregroundColor: _darkEspresso,
+                                    foregroundColor: _deepEspresso,
                                   ),
                                   child: Text(
                                     strings.isFrench
                                         ? 'Continuer en tant qu\'invité'
                                         : 'Continue as Guest',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 14,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 14.0,
                                       fontWeight: FontWeight.w600,
-                                      color: _darkEspresso,
+                                      color: _deepEspresso,
                                       decoration: TextDecoration.underline,
-                                      decorationColor: _darkEspresso,
+                                      decorationColor: _deepEspresso,
                                     ),
                                   ),
                                 ),
@@ -243,10 +254,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   strings.isFrench
                                       ? 'Développé par Ziad'
                                       : 'Developed by Ziad',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                    color: _hintBrown,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11.0,
+                                    fontWeight: FontWeight.w400,
+                                    color: _deepEspresso.withValues(alpha: 0.65),
                                     letterSpacing: 0.1,
                                   ),
                                 ),
@@ -271,11 +282,74 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 // REUSABLE COMPONENTS
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Custom Quill / Feather Icon Vector Widget.
+class QuillFeatherIcon extends StatelessWidget {
+  const QuillFeatherIcon({
+    super.key,
+    this.color = const Color(0xFF2C1A11),
+    this.size = 20,
+  });
+
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Center(
+        child: CustomPaint(
+          size: Size(size, size),
+          painter: _QuillPainter(color: color),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuillPainter extends CustomPainter {
+  const _QuillPainter({required this.color});
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final w = size.width;
+    final h = size.height;
+
+    // Central quill shaft
+    final pShaft = Path()
+      ..moveTo(w * 0.20, h * 0.85)
+      ..cubicTo(w * 0.42, h * 0.60, w * 0.65, h * 0.38, w * 0.82, h * 0.18);
+    canvas.drawPath(pShaft, paint);
+
+    // Quill feather outer vanes
+    final pVane = Path()
+      ..moveTo(w * 0.82, h * 0.18)
+      ..cubicTo(w * 0.58, h * 0.12, w * 0.32, h * 0.28, w * 0.30, h * 0.55)
+      ..lineTo(w * 0.38, h * 0.52)
+      ..moveTo(w * 0.82, h * 0.18)
+      ..cubicTo(w * 0.86, h * 0.44, w * 0.68, h * 0.66, w * 0.45, h * 0.66)
+      ..lineTo(w * 0.48, h * 0.60);
+    canvas.drawPath(pVane, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _QuillPainter oldDelegate) => false;
+}
+
 class _BoutiqueTextField extends StatelessWidget {
   const _BoutiqueTextField({
     required this.controller,
     required this.hintText,
-    required this.prefixIcon,
+    required this.prefixIconWidget,
     this.focusNode,
     this.obscureText = false,
     this.textInputAction,
@@ -287,7 +361,7 @@ class _BoutiqueTextField extends StatelessWidget {
 
   final TextEditingController controller;
   final String hintText;
-  final IconData prefixIcon;
+  final Widget prefixIconWidget;
   final FocusNode? focusNode;
   final bool obscureText;
   final TextInputAction? textInputAction;
@@ -296,9 +370,9 @@ class _BoutiqueTextField extends StatelessWidget {
   final Widget? suffixIcon;
   final FormFieldValidator<String>? validator;
 
-  static const Color _darkEspresso = Color(0xFF2D1E18);
-  static const Color _borderBrown = Color(0xFF7E6C62);
-  static const Color _hintBrown = Color(0xFF8C7A70);
+  static const Color _deepEspresso = Color(0xFF2C1A11);
+  static const Color _mutedBorder = Color(0xFFE0D8D0);
+  static const Color _hintColor = Color(0xFF8C7A70);
 
   @override
   Widget build(BuildContext context) {
@@ -310,50 +384,53 @@ class _BoutiqueTextField extends StatelessWidget {
       autofillHints: autofillHints,
       onFieldSubmitted: onFieldSubmitted,
       validator: validator,
-      style: GoogleFonts.outfit(
-        color: _darkEspresso,
+      style: GoogleFonts.inter(
+        color: _deepEspresso,
         fontSize: 15,
         fontWeight: FontWeight.w500,
       ),
-      cursorColor: _darkEspresso,
+      cursorColor: _deepEspresso,
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: GoogleFonts.outfit(
-          color: _hintBrown,
+        hintStyle: GoogleFonts.inter(
+          color: _hintColor,
           fontSize: 14,
           fontWeight: FontWeight.w400,
         ),
-        prefixIcon: Icon(
-          prefixIcon,
-          color: _borderBrown,
-          size: 19,
+        prefixIcon: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: prefixIconWidget,
+        ),
+        prefixIconConstraints: const BoxConstraints(
+          minWidth: 46,
+          minHeight: 24,
         ),
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: Colors.transparent,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 15,
+          horizontal: 18,
+          vertical: 16,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: _borderBrown, width: 1.2),
+          borderRadius: BorderRadius.circular(16.0),
+          borderSide: const BorderSide(color: _mutedBorder, width: 1.0),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: _borderBrown, width: 1.2),
+          borderRadius: BorderRadius.circular(16.0),
+          borderSide: const BorderSide(color: _mutedBorder, width: 1.0),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: _darkEspresso, width: 1.8),
+          borderRadius: BorderRadius.circular(16.0),
+          borderSide: const BorderSide(color: _deepEspresso, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.danger, width: 1.2),
+          borderRadius: BorderRadius.circular(16.0),
+          borderSide: const BorderSide(color: AppColors.danger, width: 1.0),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.danger, width: 1.8),
+          borderRadius: BorderRadius.circular(16.0),
+          borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
         ),
       ),
     );
@@ -377,21 +454,20 @@ class _CopperGradientButton extends StatelessWidget {
       width: double.infinity,
       height: 52,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(30.0),
         gradient: const LinearGradient(
           colors: [
             Color(0xFF7A3B2E),
             Color(0xFF9E5240),
-            Color(0xFF7A3B2E),
           ],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF7A3B2E).withValues(alpha: 0.32),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: const Color(0xFF7A3B2E).withValues(alpha: 0.25),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -399,9 +475,9 @@ class _CopperGradientButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(30),
-          splashColor: Colors.white.withValues(alpha: 0.15),
-          highlightColor: Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(30.0),
+          splashColor: Colors.white.withValues(alpha: 0.12),
+          highlightColor: Colors.white.withValues(alpha: 0.06),
           child: Center(
             child: loading
                 ? const SizedBox(
@@ -414,10 +490,10 @@ class _CopperGradientButton extends StatelessWidget {
                   )
                 : Text(
                     label,
-                    style: GoogleFonts.outfit(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.6,
+                    style: GoogleFonts.inter(
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.4,
                       color: Colors.white,
                     ),
                   ),
@@ -443,7 +519,7 @@ class _BoutiqueErrorBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: AppColors.danger.withValues(alpha: 0.35),
-          width: 1.1,
+          width: 1.0,
         ),
       ),
       child: Row(
@@ -461,7 +537,7 @@ class _BoutiqueErrorBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: GoogleFonts.outfit(
+              style: GoogleFonts.inter(
                 color: AppColors.danger,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
