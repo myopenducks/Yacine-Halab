@@ -29,6 +29,7 @@ class ExpenseService {
       dataFromJson: (json) => json,
     );
 
+    // Backend wraps in ok() → DioClient unwraps 'data', so res IS {items, total, ...}
     final rawItems = res['items'] as List<dynamic>? ?? [];
     return rawItems
         .map((e) => Expense.fromJson(Map<String, dynamic>.from(e as Map)))
