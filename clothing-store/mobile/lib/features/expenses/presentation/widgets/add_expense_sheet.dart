@@ -57,7 +57,10 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
     super.dispose();
   }
 
+  bool _submitted = false; // prevents double-tap
+
   Future<void> _submit() async {
+    if (_submitted) return; // guard double-tap
     final strings = ref.read(appStringsProvider);
     final amount = int.tryParse(_amountCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
     if (amount == null || amount <= 0) {
@@ -65,12 +68,12 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
       return;
     }
 
-    final title = _titleCtrl.text.trim();
-    if (title.isEmpty) {
-      showAppSnackBar(context, strings.isFrench ? 'Veuillez saisir un motif' : 'Please enter a title/reason', kind: AppSnackKind.error);
-      return;
-    }
+    // Title is optional – use a default if empty
+    final title = _titleCtrl.text.trim().isEmpty
+        ? (strings.isFrench ? 'Dépense' : 'Expense')
+        : _titleCtrl.text.trim();
 
+    _submitted = true;
     setState(() => _loading = true);
     try {
       if (widget.expenseToEdit != null) {
@@ -102,6 +105,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
         showAppSnackBar(context, strings.expenseAdded, kind: AppSnackKind.success);
       }
     } catch (e) {
+      _submitted = false; // allow retry on error
       if (!mounted) return;
       showAppSnackBar(context, 'Error: $e', kind: AppSnackKind.error);
     } finally {
