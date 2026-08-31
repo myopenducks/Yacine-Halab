@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 
 class AppLoading extends StatelessWidget {
   const AppLoading({
     super.key,
-    this.size = 100,
+    this.size = 36,
     this.message,
   });
 
@@ -12,28 +13,26 @@ class AppLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gif = Image.asset(
-      'assets/gifs/loading.gif',
+    final spinner = SizedBox(
       width: size,
       height: size,
-      fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => SizedBox(
-        width: size * 0.6,
-        height: size * 0.6,
-        child: const CircularProgressIndicator(strokeWidth: 2.5),
+      child: CircularProgressIndicator(
+        strokeWidth: 2.8,
+        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+        backgroundColor: AppColors.primary.withValues(alpha: 0.15),
       ),
     );
 
     if (message == null) {
-      return Center(child: gif);
+      return Center(child: spinner);
     }
 
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          gif,
-          const SizedBox(height: 12),
+          spinner,
+          const SizedBox(height: 14),
           Text(
             message!,
             style: TextStyle(

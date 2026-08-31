@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/providers/settings_provider.dart';
@@ -229,6 +230,21 @@ class ProfileTab extends ConsumerWidget {
     );
   }
 
+  Future<void> _launchWhatsApp(BuildContext context) async {
+    final uri = Uri.parse('https://wa.me/213549256794');
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(uri);
+      }
+    } catch (_) {
+      if (context.mounted) {
+        showAppSnackBar(context, 'WhatsApp: 0549256794', kind: AppSnackKind.info);
+      }
+    }
+  }
+
   void _openAbout(BuildContext context, WidgetRef ref) {
     final strings = ref.read(appStringsProvider);
     showAboutDialog(
@@ -432,6 +448,13 @@ class ProfileTab extends ConsumerWidget {
             icon: Icons.dark_mode_outlined,
             isDivider: true,
             onTap: () => _openThemeSheet(context, ref),
+          ),
+          _TileRow(
+            label: 'WhatsApp Direct',
+            subtitle: '0549256794 (Support & Contact)',
+            icon: Icons.chat_bubble_outline_rounded,
+            isDivider: true,
+            onTap: () => _launchWhatsApp(context),
           ),
           _TileRow(
             label: strings.about,
