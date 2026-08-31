@@ -1,18 +1,14 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/l10n/app_strings.dart';
-import '../../../core/providers/shell_tab_provider.dart';
 import '../../../core/routes/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_feedback.dart';
-import '../../../core/widgets/app_loading.dart';
 import '../../products/models/product.dart';
 import '../../products/providers/products_provider.dart';
 import '../providers/new_sale_provider.dart';
@@ -104,11 +100,11 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
 
   void _clearCart() {
     final strings = ref.read(appStringsProvider);
-    ref.read(newSaleProvider.notifier).reset();
+    ref.read(newSaleProvider.notifier).clear();
     _customerCtrl.clear();
     _notesCtrl.clear();
     _paidCtrl.clear();
-    showAppSnackBar(context, strings.cartCleared, kind: AppSnackKind.info);
+    showAppSnackBar(context, strings.clearCart, kind: AppSnackKind.info);
   }
 
   void _reloadIfSaleTabActive() {
@@ -167,9 +163,9 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
         title: Text(strings.newSale, style: theme.textTheme.headlineSmall),
         actions: [
           IconButton(
-            tooltip: strings.history,
+            tooltip: strings.sales,
             icon: const Icon(Icons.history_rounded),
-            onPressed: () => context.push(AppRouteNames.salesHistoryPath),
+            onPressed: () => context.push(AppRouteNames.homeHistoryPath),
           ),
           if (ref.watch(newSaleProvider).lines.isNotEmpty)
             IconButton(

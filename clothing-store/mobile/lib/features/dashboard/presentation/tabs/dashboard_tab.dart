@@ -13,7 +13,9 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/money.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../products/providers/products_provider.dart';
+import '../../models/dashboard.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../services/dashboard_service.dart';
 import '../../../../core/widgets/app_loading.dart';
 import '../widgets/kpi_card.dart';
 
