@@ -23,15 +23,21 @@ class Expense {
 
   factory Expense.fromJson(Map<String, dynamic> json) {
     return Expense(
-      id: json['id'] as int,
-      title: json['title'] as String,
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      title: (json['title'] as String?) ?? '',
       recipientName: json['recipientName'] as String?,
       category: (json['category'] as String?) ?? 'other',
-      amount: (json['amount'] as num).toInt(),
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
       notes: json['notes'] as String?,
-      expenseDate: DateTime.parse(json['expenseDate'] as String),
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      expenseDate: json['expenseDate'] != null
+          ? (DateTime.tryParse(json['expenseDate'].toString()) ?? DateTime.now())
+          : DateTime.now(),
+      createdAt: json['createdAt'] != null
+          ? (DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now())
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? (DateTime.tryParse(json['updatedAt'].toString()) ?? DateTime.now())
+          : DateTime.now(),
     );
   }
 

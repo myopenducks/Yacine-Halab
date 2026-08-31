@@ -426,7 +426,7 @@ class _KpiGrid extends ConsumerWidget {
           title: strings.netProfit,
           value: formatDAAmount(summary.netProfit),
           icon: Icons.trending_up_rounded,
-          onTap: () => context.push(AppRouteNames.expensesPath),
+          onTap: () => GoRouter.of(context).go(AppRouteNames.homeHistoryPath),
         ),
         KpiCard(
           title: strings.itemsSold,

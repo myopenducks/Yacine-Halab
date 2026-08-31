@@ -590,13 +590,6 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: _kCopper,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_rounded),
-        label: Text(strings.addExpense, style: const TextStyle(fontWeight: FontWeight.w700)),
-        onPressed: () => _openAddSheet(),
-      ),
     );
   }
 }
