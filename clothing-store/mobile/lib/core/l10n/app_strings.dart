@@ -110,6 +110,7 @@ class AppStrings {
 
   // ── Products ────────────────────────────────────────────────────
   String get products => isFrench ? 'Produits' : 'Products';
+  String get allCategories => isFrench ? 'Toutes les catégories' : 'All categories';
   String get editProduct => isFrench ? 'Modifier le produit' : 'Edit product';
   String get changeCategory => isFrench ? 'Changer de catégorie' : 'Change Category';
   String get addCategory => isFrench ? 'Ajouter une catégorie' : 'Add category';

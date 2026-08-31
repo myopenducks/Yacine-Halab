@@ -124,10 +124,11 @@ class AppEmptyState extends StatelessWidget {
   }
 }
 
-class AppLoadingBlock extends StatelessWidget {
-  const AppLoadingBlock({super.key, this.message});
+class AppLoadingIndicator extends StatelessWidget {
+  const AppLoadingIndicator({super.key, this.message, this.size = 48});
 
   final String? message;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -135,10 +136,16 @@ class AppLoadingBlock extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const SizedBox(
-          width: 28,
-          height: 28,
-          child: CircularProgressIndicator(strokeWidth: 2.4),
+        Image.asset(
+          'assets/gifs/loading.gif',
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => SizedBox(
+            width: size * 0.6,
+            height: size * 0.6,
+            child: const CircularProgressIndicator(strokeWidth: 2.4),
+          ),
         ),
         if (message != null) ...[
           const SizedBox(height: 14),

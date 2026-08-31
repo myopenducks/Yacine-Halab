@@ -7,6 +7,7 @@ import '../../../../core/routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_feedback.dart';
+import '../../../../core/widgets/app_loading.dart';
 import '../../../../core/providers/app_refresh.dart';
 import '../../../products/models/product.dart';
 import '../../../products/presentation/widgets/product_tile.dart';
@@ -143,48 +144,92 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
     final strings = ref.read(appStringsProvider);
     final isLight = Theme.of(context).brightness == Brightness.light;
     final ctrl = TextEditingController();
-
     final created = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         backgroundColor: isLight ? AppColors.white : AppColors.cardDark,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.category_rounded, color: AppColors.primary, size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      strings.addCategory,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.category_rounded, color: AppColors.primary, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Text(strings.addCategory, style: const TextStyle(fontSize: 18))),
-          ],
+              const SizedBox(height: 20),
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  labelText: strings.categoryName,
+                  hintText: strings.isFrench ? 'ex: Chemises' : 'ex: Shirts',
+                  filled: true,
+                  fillColor: isLight ? AppColors.gray100 : AppColors.gray900,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        onPressed: () => Navigator.pop(ctx),
+                        child: Text(strings.cancel, style: const TextStyle(fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+                        child: Text(strings.confirm, style: const TextStyle(fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(
-            hintText: strings.categoryName,
-            filled: true,
-            fillColor: isLight ? AppColors.gray100 : AppColors.gray900,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-          ),
-          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(strings.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-            child: Text(strings.confirm),
-          ),
-        ],
       ),
     );
 
@@ -354,41 +399,26 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
               icon: const Icon(Icons.close),
               onPressed: () => _toggleSelectionMode(null),
             )
-          else ...[
-            IconButton(
-              tooltip: strings.addCategory,
-              icon: const Icon(Icons.create_new_folder_outlined),
-              onPressed: _showCreateCategoryDialog,
-            ),
-            IconButton(
-              tooltip: strings.manageCategories,
-              icon: const Icon(Icons.category_outlined),
-              onPressed: () {
-                final cats = ref.read(categoriesProvider).valueOrNull ?? [];
-                _showManageCategoriesSheet(cats);
-              },
-            ),
-            if (list.total > 0)
-              Padding(
-                padding: const EdgeInsets.only(right: 12, left: 4),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: (isLight ? AppColors.gray200 : AppColors.gray800),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${list.total}',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: isLight ? AppColors.gray700 : AppColors.gray300,
-                        fontWeight: FontWeight.bold,
-                      ),
+          else if (list.total > 0)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: (isLight ? AppColors.gray200 : AppColors.gray800),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${list.total}',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: isLight ? AppColors.gray700 : AppColors.gray300,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ),
-          ],
+            ),
         ],
       ),
       body: Column(
@@ -462,68 +492,124 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
               ],
             ),
           ),
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 42,
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: categoriesAsync.when(
-              loading: () => const Center(
-                child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
+              loading: () => const SizedBox(
+                height: 44,
+                child: Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))),
               ),
               error: (_, __) => const SizedBox.shrink(),
               data: (cats) {
-                return ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                return Row(
                   children: [
-                    _FilterChip(
-                      label: strings.all,
-                      selected: filters.categoryId == null,
-                      onTap: () => ref
-                          .read(productFiltersProvider.notifier)
-                          .setCategoryId(null),
+                    // Category Dropdown
+                    Expanded(
+                      child: Container(
+                        height: 44,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: isLight ? AppColors.white : AppColors.gray900,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: filters.categoryId != null
+                                ? (isLight ? AppColors.black : AppColors.white)
+                                : (isLight ? AppColors.gray200 : AppColors.gray800),
+                            width: filters.categoryId != null ? 1.4 : 1.0,
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<int?>(
+                            value: filters.categoryId,
+                            isExpanded: true,
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
+                            borderRadius: BorderRadius.circular(16),
+                            dropdownColor: isLight ? AppColors.white : AppColors.cardDark,
+                            items: [
+                              DropdownMenuItem<int?>(
+                                value: null,
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.grid_view_rounded, size: 16),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        strings.allCategories,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontWeight: filters.categoryId == null ? FontWeight.w700 : FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              ...cats.map(
+                                (c) => DropdownMenuItem<int?>(
+                                  value: c.id,
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.checkroom_outlined, size: 16),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          c.name,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontWeight: filters.categoryId == c.id ? FontWeight.w700 : FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                            onChanged: (catId) {
+                              ref.read(productFiltersProvider.notifier).setCategoryId(catId);
+                            },
+                          ),
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 8),
+                    // Low stock chip
                     _FilterChip(
                       label: strings.lowStock,
                       selected: filters.lowStockOnly,
                       icon: Icons.warning_amber_rounded,
-                      onTap: () => ref
-                          .read(productFiltersProvider.notifier)
-                          .toggleLowStockOnly(),
+                      onTap: () => ref.read(productFiltersProvider.notifier).toggleLowStockOnly(),
                     ),
-                    const SizedBox(width: 8),
-                    ...cats.expand((c) sync* {
-                      yield _FilterChip(
-                        label: c.name,
-                        selected: filters.categoryId == c.id,
-                        onTap: () {
-                          final notifier =
-                              ref.read(productFiltersProvider.notifier);
-                          if (filters.categoryId == c.id) {
-                            notifier.setCategoryId(null);
-                          } else {
-                            notifier.setCategoryId(c.id);
-                          }
-                        },
-                      );
-                      yield const SizedBox(width: 8);
-                    }),
-                    _FilterChip(
-                      label: strings.addCategory,
-                      icon: Icons.add,
-                      selected: false,
-                      onTap: _showCreateCategoryDialog,
+                    const SizedBox(width: 6),
+                    // Add Category quick button
+                    SizedBox(
+                      height: 44,
+                      width: 44,
+                      child: IconButton.filledTonal(
+                        tooltip: strings.addCategory,
+                        icon: const Icon(Icons.add_rounded, size: 20),
+                        style: IconButton.styleFrom(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: EdgeInsets.zero,
+                        ),
+                        onPressed: _showCreateCategoryDialog,
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
-                      label: strings.manageCategories,
-                      icon: Icons.tune_rounded,
-                      selected: false,
-                      onTap: () => _showManageCategoriesSheet(cats),
+                    const SizedBox(width: 4),
+                    // Manage Categories button
+                    SizedBox(
+                      height: 44,
+                      width: 44,
+                      child: IconButton.outlined(
+                        tooltip: strings.manageCategories,
+                        icon: const Icon(Icons.tune_rounded, size: 18),
+                        style: IconButton.styleFrom(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: EdgeInsets.zero,
+                        ),
+                        onPressed: () => _showManageCategoriesSheet(cats),
+                      ),
                     ),
                   ],
                 );
@@ -579,7 +665,9 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
         physics: const AlwaysScrollableScrollPhysics(),
         children: const [
           SizedBox(height: 120),
-          Center(child: CircularProgressIndicator()),
+          Center(
+            child: AppLoading(size: 64),
+          ),
         ],
       );
     }

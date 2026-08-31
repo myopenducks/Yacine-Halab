@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/app_loading.dart';
 import '../models/expense.dart';
 import '../providers/expenses_provider.dart';
 import 'widgets/add_expense_sheet.dart';
@@ -197,20 +198,22 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
           ),
         ),
         actions: [
-          IconButton(
-            icon: Container(
-              width: 36,
-              height: 36,
-              decoration: const BoxDecoration(
-                color: _kCopper,
-                shape: BoxShape.circle,
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: _kCopper,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Icon(Icons.add, color: Colors.white, size: 20),
+              icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+              label: Text(
+                strings.addExpense,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.white),
+              ),
+              onPressed: () => _openAddSheet(),
             ),
-            tooltip: strings.addExpense,
-            onPressed: () => _openAddSheet(),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: RefreshIndicator(
@@ -223,7 +226,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
           children: [
             // ── Total Summary Banner ──────────────────────────────────
             summaryAsync.when(
-              loading: () => const SizedBox(height: 110, child: Center(child: CircularProgressIndicator())),
+              loading: () => const SizedBox(height: 100, child: Center(child: AppLoading(size: 44))),
               error: (_, __) => const SizedBox.shrink(),
               data: (summary) {
                 return Container(
@@ -417,7 +420,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
             expensesAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.all(40),
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(child: AppLoading(size: 56)),
               ),
               error: (e, _) => Center(
                 child: Padding(

@@ -13,9 +13,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/money.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../products/providers/products_provider.dart';
-import '../../models/dashboard.dart';
 import '../../providers/dashboard_provider.dart';
-import '../../services/dashboard_service.dart';
+import '../../../../core/widgets/app_loading.dart';
 import '../widgets/kpi_card.dart';
 
 class DashboardHomeTab extends ConsumerWidget {
@@ -565,7 +564,7 @@ class _SoldItemsSheet extends ConsumerWidget {
               future: soldItemsFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: AppLoading(size: 50));
                 }
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));

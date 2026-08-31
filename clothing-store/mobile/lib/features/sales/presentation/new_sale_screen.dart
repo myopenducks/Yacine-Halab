@@ -12,6 +12,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/app_loading.dart';
 import '../../products/models/product.dart';
 import '../../products/providers/products_provider.dart';
 import '../providers/new_sale_provider.dart';
@@ -31,13 +32,20 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
   final _notesCtrl = TextEditingController();
   final _paidCtrl = TextEditingController();
   Timer? _debounce;
-
-  List<Product> _products = const [];
-  bool _loadingProducts = false;
-  String? _loadError;
   int? _selectedCategoryId;
   bool _showDetails = false;
-  bool _saleTabLoaded = false;
+
+  List<Product> _products = [];
+  bool _loadingProducts = false;
+  String? _loadError;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProducts();
+    });
+  }
 
   @override
   void dispose() {
@@ -49,47 +57,38 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
     super.dispose();
   }
 
-  void _reloadIfSaleTabActive() {
-    if (ref.read(activeShellTabIndexProvider) != ShellTabs.sale) return;
-    _loadSuggestions(
-      search: _searchCtrl.text.trim().isEmpty ? null : _searchCtrl.text.trim(),
-      categoryId: _selectedCategoryId,
-    );
-  }
-
-  Future<void> _loadSuggestions({String? search, int? categoryId}) async {
-    if (!mounted) return;
+  Future<void> _loadProducts({String? search, int? categoryId}) async {
     setState(() {
       _loadingProducts = true;
       _loadError = null;
     });
+
     try {
-      final page = await ref.read(productServiceProvider).list(
+      final res = await ref.read(productServiceProvider).list(
             page: 1,
-            limit: 40,
+            limit: 100,
             search: search,
             categoryId: categoryId,
           );
       if (!mounted) return;
       setState(() {
-        _products = page.items;
+        _products = res.items;
         _loadingProducts = false;
-        _saleTabLoaded = true;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
+        _loadError = e.toString();
         _loadingProducts = false;
-        _loadError = 'Failed to load products';
       });
     }
   }
 
-  void _onSearchChanged(String value) {
+  void _onSearchChanged(String query) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 150), () {
-      _loadSuggestions(
-        search: value.trim().isEmpty ? null : value.trim(),
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      _loadProducts(
+        search: query.isEmpty ? null : query,
         categoryId: _selectedCategoryId,
       );
     });
@@ -97,9 +96,25 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
 
   void _onCategorySelected(int? categoryId) {
     setState(() => _selectedCategoryId = categoryId);
-    _loadSuggestions(
-      search: _searchCtrl.text.trim().isEmpty ? null : _searchCtrl.text.trim(),
+    _loadProducts(
+      search: _searchCtrl.text.isEmpty ? null : _searchCtrl.text,
       categoryId: categoryId,
+    );
+  }
+
+  void _clearCart() {
+    final strings = ref.read(appStringsProvider);
+    ref.read(newSaleProvider.notifier).reset();
+    _customerCtrl.clear();
+    _notesCtrl.clear();
+    _paidCtrl.clear();
+    showAppSnackBar(context, strings.cartCleared, kind: AppSnackKind.info);
+  }
+
+  void _reloadIfSaleTabActive() {
+    _loadProducts(
+      search: _searchCtrl.text.isEmpty ? null : _searchCtrl.text,
+      categoryId: _selectedCategoryId,
     );
   }
 
@@ -135,18 +150,8 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
     _notesCtrl.clear();
     _paidCtrl.clear();
     _searchCtrl.clear();
-    _loadSuggestions();
+    _loadProducts();
     context.push(AppRouteNames.saleDetailPath(sale.id));
-  }
-
-  void _clearCart() {
-    ref.read(newSaleProvider.notifier).clear();
-    setState(() {
-      _showDetails = false;
-      _customerCtrl.clear();
-      _notesCtrl.clear();
-      _paidCtrl.clear();
-    });
   }
 
   @override
@@ -155,28 +160,21 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
     final isLight = theme.brightness == Brightness.light;
     final strings = ref.watch(appStringsProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
-    final cartEmpty = ref.watch(newSaleProvider.select((s) => s.isEmpty));
-
-    ref.listen(activeShellTabIndexProvider, (prev, next) {
-      if (next == ShellTabs.sale && prev != next) {
-        _reloadIfSaleTabActive();
-      }
-    });
-
-    if (!_saleTabLoaded &&
-        ref.read(activeShellTabIndexProvider) == ShellTabs.sale) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _reloadIfSaleTabActive());
-    }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(strings.newSale, style: theme.textTheme.headlineSmall),
         actions: [
-          if (!cartEmpty)
-            TextButton.icon(
-              icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-              label: Text(strings.clearCart),
+          IconButton(
+            tooltip: strings.history,
+            icon: const Icon(Icons.history_rounded),
+            onPressed: () => context.push(AppRouteNames.salesHistoryPath),
+          ),
+          if (ref.watch(newSaleProvider).lines.isNotEmpty)
+            IconButton(
+              tooltip: strings.clearCart,
+              icon: const Icon(Icons.delete_sweep_outlined),
               onPressed: ref.read(newSaleProvider).submitting ? null : _clearCart,
             ),
         ],
@@ -185,76 +183,122 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-            child: TextField(
-              controller: _searchCtrl,
-              onChanged: _onSearchChanged,
-              decoration: InputDecoration(
-                hintText: strings.searchProducts,
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchCtrl.text.isEmpty
-                    ? null
-                    : IconButton(
-                        onPressed: () {
-                          _searchCtrl.clear();
-                          _onSearchChanged('');
-                        },
-                        icon: const Icon(Icons.close, size: 18),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchCtrl,
+                    onChanged: _onSearchChanged,
+                    decoration: InputDecoration(
+                      hintText: strings.searchProducts,
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _searchCtrl.text.isEmpty
+                          ? null
+                          : IconButton(
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                _onSearchChanged('');
+                              },
+                              icon: const Icon(Icons.close, size: 18),
+                            ),
+                      fillColor: isLight ? AppColors.white : AppColors.cardDark,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: isLight ? AppColors.border : AppColors.borderDark,
+                        ),
                       ),
-                fillColor: isLight ? AppColors.white : AppColors.cardDark,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: isLight ? AppColors.border : AppColors.borderDark,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: isLight ? AppColors.border : AppColors.borderDark,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: isLight ? AppColors.border : AppColors.borderDark,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(
-                    color: AppColors.primary,
-                    width: 1.5,
-                  ),
-                ),
-              ),
+              ],
             ),
           ),
-          categoriesAsync.maybeWhen(
-            data: (categories) {
-              if (categories.isEmpty) return const SizedBox.shrink();
-              return SizedBox(
-                height: 38,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  children: [
-                    ChoiceChip(
-                      label: Text(strings.all),
-                      selected: _selectedCategoryId == null,
-                      onSelected: (_) => _onCategorySelected(null),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: categoriesAsync.maybeWhen(
+              data: (categories) {
+                if (categories.isEmpty) return const SizedBox.shrink();
+                return Container(
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: isLight ? AppColors.white : AppColors.cardDark,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _selectedCategoryId != null
+                          ? (isLight ? AppColors.black : AppColors.white)
+                          : (isLight ? AppColors.border : AppColors.borderDark),
+                      width: _selectedCategoryId != null ? 1.4 : 1.0,
                     ),
-                    const SizedBox(width: 8),
-                    ...categories.map((c) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: Text(c.name),
-                          selected: _selectedCategoryId == c.id,
-                          onSelected: (selected) {
-                            _onCategorySelected(selected ? c.id : null);
-                          },
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int?>(
+                      value: _selectedCategoryId,
+                      isExpanded: true,
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
+                      borderRadius: BorderRadius.circular(16),
+                      dropdownColor: isLight ? AppColors.white : AppColors.cardDark,
+                      items: [
+                        DropdownMenuItem<int?>(
+                          value: null,
+                          child: Row(
+                            children: [
+                              const Icon(Icons.grid_view_rounded, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  strings.allCategories,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontWeight: _selectedCategoryId == null ? FontWeight.w700 : FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      );
-                    }),
-                  ],
-                ),
-              );
-            },
-            orElse: () => const SizedBox.shrink(),
+                        ...categories.map(
+                          (c) => DropdownMenuItem<int?>(
+                            value: c.id,
+                            child: Row(
+                              children: [
+                                const Icon(Icons.checkroom_outlined, size: 16),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    c.name,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontWeight: _selectedCategoryId == c.id ? FontWeight.w700 : FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                      onChanged: _onCategorySelected,
+                    ),
+                  ),
+                );
+              },
+              orElse: () => const SizedBox.shrink(),
+            ),
           ),
           const SizedBox(height: 10),
           Expanded(
