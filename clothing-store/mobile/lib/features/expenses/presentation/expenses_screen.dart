@@ -197,20 +197,6 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
             color: isLight ? _kEspresso : Colors.white,
           ),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: IconButton.filled(
-              style: IconButton.styleFrom(
-                backgroundColor: _kCopper,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              tooltip: strings.addExpense,
-              icon: const Icon(Icons.add_rounded, size: 22, color: Colors.white),
-              onPressed: () => _openAddSheet(),
-            ),
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -301,33 +287,53 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
 
             const SizedBox(height: 18),
 
-            // ── Search & Filter ───────────────────────────────────────
-            TextField(
-              controller: _searchCtrl,
-              onChanged: (val) {
-                ref.read(expenseFiltersProvider.notifier).state =
-                    filters.copyWith(search: val.trim());
-              },
-              decoration: InputDecoration(
-                hintText: strings.search,
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: _searchCtrl.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear_rounded),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                          ref.read(expenseFiltersProvider.notifier).state =
-                              filters.copyWith(clearSearch: true);
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: isLight ? _kCardBg : _kCardDark,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: isLight ? _kBorder : _kBorderDark)),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: isLight ? _kBorder : _kBorderDark)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: _kCopper, width: 1.6)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              ),
+            // ── Search & Add Row ──────────────────────────────────────
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchCtrl,
+                    onChanged: (val) {
+                      ref.read(expenseFiltersProvider.notifier).state =
+                          filters.copyWith(search: val.trim());
+                    },
+                    decoration: InputDecoration(
+                      hintText: strings.search,
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: _searchCtrl.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded),
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                ref.read(expenseFiltersProvider.notifier).state =
+                                    filters.copyWith(clearSearch: true);
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: isLight ? _kCardBg : _kCardDark,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: isLight ? _kBorder : _kBorderDark)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: isLight ? _kBorder : _kBorderDark)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: _kCopper, width: 1.6)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 52,
+                  width: 52,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _kCopper,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      padding: EdgeInsets.zero,
+                    ),
+                    onPressed: () => _openAddSheet(),
+                    child: const Icon(Icons.add_rounded, size: 26, color: Colors.white),
+                  ),
+                ),
+              ],
             ),
 
             const SizedBox(height: 14),
