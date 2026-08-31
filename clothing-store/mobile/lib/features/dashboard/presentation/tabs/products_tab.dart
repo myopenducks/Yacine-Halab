@@ -253,121 +253,136 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
     final strings = ref.read(appStringsProvider);
     final isLight = Theme.of(context).brightness == Brightness.light;
 
-    await showModalBottomSheet(
+    await showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: isLight ? AppColors.white : AppColors.cardDark,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
       builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setSheetState) {
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: isLight ? AppColors.white : AppColors.cardDark,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 450, maxHeight: 520),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: isLight ? AppColors.gray300 : AppColors.gray700,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.category_rounded, color: AppColors.primary, size: 20),
+                        ),
+                        const SizedBox(width: 12),
                         Text(
                           strings.manageCategories,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        FilledButton.tonalIcon(
-                          icon: const Icon(Icons.add, size: 18),
-                          label: Text(strings.addCategory),
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            _showCreateCategoryDialog();
-                          },
+                          style: const TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    Flexible(
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: categories.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (context, idx) {
-                          final c = categories[idx];
-                          final isFallback = c.name.toLowerCase() == 'autre' || c.name.toLowerCase() == 'other';
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: (isLight ? AppColors.gray100 : AppColors.gray800),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(Icons.folder_outlined, size: 20),
-                            ),
-                            title: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                            trailing: isFallback
-                                ? null
-                                : IconButton(
-                                    icon: const Icon(Icons.delete_outline, color: AppColors.danger, size: 20),
-                                    onPressed: () async {
-                                      final confirm = await showDialog<bool>(
-                                        context: context,
-                                        builder: (cctx) => AlertDialog(
-                                          title: Text(strings.deleteCategory),
-                                          content: Text(strings.deleteCategoryConfirm),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(cctx, false),
-                                              child: Text(strings.cancel),
-                                            ),
-                                            FilledButton(
-                                              style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-                                              onPressed: () => Navigator.pop(cctx, true),
-                                              child: Text(strings.delete),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-
-                                      if (confirm == true && mounted) {
-                                        try {
-                                          await ref.read(categoryServiceProvider).delete(c.id);
-                                          ref.invalidate(categoriesProvider);
-                                          refreshAfterInventoryChange(ref);
-                                          if (ctx.mounted) Navigator.pop(ctx);
-                                          if (mounted) {
-                                            showAppSnackBar(context, strings.categoryDeleted, kind: AppSnackKind.success);
-                                          }
-                                        } catch (_) {
-                                          if (mounted) {
-                                            showAppSnackBar(context, 'Erreur lors de la suppression', kind: AppSnackKind.error);
-                                          }
-                                        }
-                                      }
-                                    },
-                                  ),
-                          );
-                        },
-                      ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
                 ),
-              ),
-            );
-          },
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: categories.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, idx) {
+                      final c = categories[idx];
+                      final isFallback = c.name.toLowerCase() == 'autre' || c.name.toLowerCase() == 'other';
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: (isLight ? AppColors.gray100 : AppColors.gray800),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.folder_outlined, size: 20),
+                        ),
+                        title: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        trailing: isFallback
+                            ? null
+                            : IconButton(
+                                icon: const Icon(Icons.delete_outline, color: AppColors.danger, size: 20),
+                                onPressed: () async {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (cctx) => Dialog(
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                      backgroundColor: isLight ? AppColors.white : AppColors.cardDark,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(20),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(strings.deleteCategory, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                            const SizedBox(height: 10),
+                                            Text(strings.deleteCategoryConfirm, textAlign: TextAlign.center),
+                                            const SizedBox(height: 20),
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: OutlinedButton(
+                                                    onPressed: () => Navigator.pop(cctx, false),
+                                                    child: Text(strings.cancel),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 10),
+                                                Expanded(
+                                                  child: FilledButton(
+                                                    style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+                                                    onPressed: () => Navigator.pop(cctx, true),
+                                                    child: Text(strings.delete),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+
+                                  if (confirm == true && mounted) {
+                                    try {
+                                      await ref.read(categoryServiceProvider).delete(c.id);
+                                      ref.invalidate(categoriesProvider);
+                                      refreshAfterInventoryChange(ref);
+                                      if (ctx.mounted) Navigator.pop(ctx);
+                                      if (mounted) {
+                                        showAppSnackBar(context, strings.categoryDeleted, kind: AppSnackKind.success);
+                                      }
+                                    } catch (_) {
+                                      if (mounted) {
+                                        showAppSnackBar(context, 'Erreur lors de la suppression', kind: AppSnackKind.error);
+                                      }
+                                    }
+                                  }
+                                },
+                              ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -565,9 +580,32 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
                                   ),
                                 ),
                               ),
+                              DropdownMenuItem<int?>(
+                                value: -1,
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.tune_rounded, size: 16, color: AppColors.primary),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        strings.manageCategories,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                             onChanged: (catId) {
-                              ref.read(productFiltersProvider.notifier).setCategoryId(catId);
+                              if (catId == -1) {
+                                _showManageCategoriesSheet(cats);
+                              } else {
+                                ref.read(productFiltersProvider.notifier).setCategoryId(catId);
+                              }
                             },
                           ),
                         ),
@@ -581,34 +619,19 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
                       icon: Icons.warning_amber_rounded,
                       onTap: () => ref.read(productFiltersProvider.notifier).toggleLowStockOnly(),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 8),
                     // Add Category quick button
                     SizedBox(
                       height: 44,
                       width: 44,
                       child: IconButton.filledTonal(
                         tooltip: strings.addCategory,
-                        icon: const Icon(Icons.add_rounded, size: 20),
+                        icon: const Icon(Icons.add_rounded, size: 22),
                         style: IconButton.styleFrom(
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           padding: EdgeInsets.zero,
                         ),
                         onPressed: _showCreateCategoryDialog,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    // Manage Categories button
-                    SizedBox(
-                      height: 44,
-                      width: 44,
-                      child: IconButton.outlined(
-                        tooltip: strings.manageCategories,
-                        icon: const Icon(Icons.tune_rounded, size: 18),
-                        style: IconButton.styleFrom(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          padding: EdgeInsets.zero,
-                        ),
-                        onPressed: () => _showManageCategoriesSheet(cats),
                       ),
                     ),
                   ],
