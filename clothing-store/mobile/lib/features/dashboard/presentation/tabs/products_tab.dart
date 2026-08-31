@@ -581,6 +581,25 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
                                 ),
                               ),
                               DropdownMenuItem<int?>(
+                                value: -2,
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.add_circle_outline_rounded, size: 16, color: AppColors.primary),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '+ ${strings.addCategory}',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem<int?>(
                                 value: -1,
                                 child: Row(
                                   children: [
@@ -601,7 +620,9 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
                               ),
                             ],
                             onChanged: (catId) {
-                              if (catId == -1) {
+                              if (catId == -2) {
+                                _showCreateCategoryDialog();
+                              } else if (catId == -1) {
                                 _showManageCategoriesSheet(cats);
                               } else {
                                 ref.read(productFiltersProvider.notifier).setCategoryId(catId);
@@ -618,21 +639,6 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
                       selected: filters.lowStockOnly,
                       icon: Icons.warning_amber_rounded,
                       onTap: () => ref.read(productFiltersProvider.notifier).toggleLowStockOnly(),
-                    ),
-                    const SizedBox(width: 8),
-                    // Add Category quick button
-                    SizedBox(
-                      height: 44,
-                      width: 44,
-                      child: IconButton.filledTonal(
-                        tooltip: strings.addCategory,
-                        icon: const Icon(Icons.add_rounded, size: 22),
-                        style: IconButton.styleFrom(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          padding: EdgeInsets.zero,
-                        ),
-                        onPressed: _showCreateCategoryDialog,
-                      ),
                     ),
                   ],
                 );
