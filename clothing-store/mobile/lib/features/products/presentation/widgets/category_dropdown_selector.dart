@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/category_icon.dart';
 import '../../models/product.dart';
 
 class CategoryDropdownSelector extends StatelessWidget {
@@ -124,7 +125,7 @@ class CategoryDropdownSelector extends StatelessWidget {
               child: Row(
                 children: [
                   Icon(
-                    Icons.checkroom_outlined,
+                    getCategoryIcon(c.name),
                     size: 18,
                     color: isSelected
                         ? AppColors.primary
@@ -225,7 +226,7 @@ class CategoryDropdownSelector extends StatelessWidget {
             Icon(
               selectedCategoryId == null
                   ? Icons.grid_view_rounded
-                  : Icons.checkroom_outlined,
+                  : getCategoryIcon(_currentLabel),
               size: 17,
               color: selectedCategoryId != null
                   ? AppColors.primary

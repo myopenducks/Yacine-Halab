@@ -153,6 +153,103 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
     context.push(AppRouteNames.saleDetailPath(sale.id));
   }
 
+  Future<void> _showCreateCategoryDialog() async {
+    final strings = ref.read(appStringsProvider);
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final ctrl = TextEditingController();
+
+    final created = await showDialog<String>(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isLight ? AppColors.white : AppColors.cardDark,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 420),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                strings.addCategory,
+                style: const TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 20,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: strings.categoryName,
+                  filled: true,
+                  fillColor: isLight ? AppColors.gray100 : AppColors.gray900,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(
+                      color: isLight ? AppColors.gray200 : AppColors.gray800,
+                    ),
+                  ),
+                ),
+                onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        onPressed: () => Navigator.pop(ctx),
+                        child: Text(strings.cancel, style: const TextStyle(fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+                        child: Text(strings.confirm, style: const TextStyle(fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (created != null && created.isNotEmpty && mounted) {
+      try {
+        final newCat = await ref.read(categoryServiceProvider).create(created);
+        ref.invalidate(categoriesProvider);
+        if (mounted) {
+          setState(() => _selectedCategoryId = newCat.id);
+          _onCategorySelected(newCat.id);
+          showAppSnackBar(context, strings.categoryCreated, kind: AppSnackKind.success);
+        }
+      } catch (_) {
+        if (mounted) {
+          showAppSnackBar(context, 'Erreur lors de la création de la catégorie', kind: AppSnackKind.error);
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -238,7 +335,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                   addCategoryLabel: strings.addCategory,
                   isLight: isLight,
                   onSelectCategory: _onCategorySelected,
-                  onAddCategory: () {},
+                  onAddCategory: _showCreateCategoryDialog,
                 );
               },
               orElse: () => const SizedBox.shrink(),

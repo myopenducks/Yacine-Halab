@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AppLoading extends StatelessWidget {
   const AppLoading({
     super.key,
-    this.size = 50,
+    this.size = 100,
     this.message,
   });
 
