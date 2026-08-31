@@ -200,23 +200,14 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: SizedBox(
-                height: 38,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _kCopper,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
-                  label: Text(
-                    strings.addExpense,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.white),
-                  ),
-                  onPressed: () => _openAddSheet(),
-                ),
+            child: IconButton.filled(
+              style: IconButton.styleFrom(
+                backgroundColor: _kCopper,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
+              tooltip: strings.addExpense,
+              icon: const Icon(Icons.add_rounded, size: 22, color: Colors.white),
+              onPressed: () => _openAddSheet(),
             ),
           ),
         ],
