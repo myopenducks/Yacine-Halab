@@ -10,6 +10,7 @@ import '../../../../core/widgets/app_feedback.dart';
 import '../../../../core/widgets/app_loading.dart';
 import '../../../../core/providers/app_refresh.dart';
 import '../../../products/models/product.dart';
+import '../../../products/presentation/widgets/category_dropdown_selector.dart';
 import '../../../products/presentation/widgets/product_tile.dart';
 import '../../../products/providers/products_provider.dart';
 
@@ -519,117 +520,20 @@ class _ProductsTabState extends ConsumerState<ProductsTab> {
               data: (cats) {
                 return Row(
                   children: [
-                    // Category Dropdown
+                    // Smooth Category Dropdown Selector
                     Expanded(
-                      child: Container(
-                        height: 44,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: isLight ? AppColors.white : AppColors.gray900,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: filters.categoryId != null
-                                ? (isLight ? AppColors.black : AppColors.white)
-                                : (isLight ? AppColors.gray200 : AppColors.gray800),
-                            width: filters.categoryId != null ? 1.4 : 1.0,
-                          ),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<int?>(
-                            value: filters.categoryId,
-                            isExpanded: true,
-                            icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
-                            borderRadius: BorderRadius.circular(16),
-                            dropdownColor: isLight ? AppColors.white : AppColors.cardDark,
-                            items: [
-                              DropdownMenuItem<int?>(
-                                value: null,
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.grid_view_rounded, size: 16),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        strings.allCategories,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontWeight: filters.categoryId == null ? FontWeight.w700 : FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              ...cats.map(
-                                (c) => DropdownMenuItem<int?>(
-                                  value: c.id,
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.checkroom_outlined, size: 16),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          c.name,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontWeight: filters.categoryId == c.id ? FontWeight.w700 : FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              DropdownMenuItem<int?>(
-                                value: -2,
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.add_circle_outline_rounded, size: 16, color: AppColors.primary),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        '+ ${strings.addCategory}',
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              DropdownMenuItem<int?>(
-                                value: -1,
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.tune_rounded, size: 16, color: AppColors.primary),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        strings.manageCategories,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                            onChanged: (catId) {
-                              if (catId == -2) {
-                                _showCreateCategoryDialog();
-                              } else if (catId == -1) {
-                                _showManageCategoriesSheet(cats);
-                              } else {
-                                ref.read(productFiltersProvider.notifier).setCategoryId(catId);
-                              }
-                            },
-                          ),
-                        ),
+                      child: CategoryDropdownSelector(
+                        categories: cats,
+                        selectedCategoryId: filters.categoryId,
+                        allCategoriesLabel: strings.allCategories,
+                        addCategoryLabel: strings.addCategory,
+                        manageCategoriesLabel: strings.manageCategories,
+                        isLight: isLight,
+                        onSelectCategory: (catId) {
+                          ref.read(productFiltersProvider.notifier).setCategoryId(catId);
+                        },
+                        onAddCategory: _showCreateCategoryDialog,
+                        onManageCategories: () => _showManageCategoriesSheet(cats),
                       ),
                     ),
                     const SizedBox(width: 8),

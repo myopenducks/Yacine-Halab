@@ -12,6 +12,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../products/models/product.dart';
+import '../../products/presentation/widgets/category_dropdown_selector.dart';
 import '../../products/providers/products_provider.dart';
 import '../providers/new_sale_provider.dart';
 import 'widgets/cart_line_tile.dart';
@@ -230,69 +231,14 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
             child: categoriesAsync.maybeWhen(
               data: (categories) {
                 if (categories.isEmpty) return const SizedBox.shrink();
-                return Container(
-                  height: 44,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: isLight ? AppColors.white : AppColors.cardDark,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: _selectedCategoryId != null
-                          ? (isLight ? AppColors.black : AppColors.white)
-                          : (isLight ? AppColors.border : AppColors.borderDark),
-                      width: _selectedCategoryId != null ? 1.4 : 1.0,
-                    ),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<int?>(
-                      value: _selectedCategoryId,
-                      isExpanded: true,
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
-                      borderRadius: BorderRadius.circular(16),
-                      dropdownColor: isLight ? AppColors.white : AppColors.cardDark,
-                      items: [
-                        DropdownMenuItem<int?>(
-                          value: null,
-                          child: Row(
-                            children: [
-                              const Icon(Icons.grid_view_rounded, size: 16),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  strings.allCategories,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontWeight: _selectedCategoryId == null ? FontWeight.w700 : FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        ...categories.map(
-                          (c) => DropdownMenuItem<int?>(
-                            value: c.id,
-                            child: Row(
-                              children: [
-                                const Icon(Icons.checkroom_outlined, size: 16),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    c.name,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontWeight: _selectedCategoryId == c.id ? FontWeight.w700 : FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                      onChanged: _onCategorySelected,
-                    ),
-                  ),
+                return CategoryDropdownSelector(
+                  categories: categories,
+                  selectedCategoryId: _selectedCategoryId,
+                  allCategoriesLabel: strings.allCategories,
+                  addCategoryLabel: strings.addCategory,
+                  isLight: isLight,
+                  onSelectCategory: _onCategorySelected,
+                  onAddCategory: () {},
                 );
               },
               orElse: () => const SizedBox.shrink(),
