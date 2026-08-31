@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/providers/settings_provider.dart';
+import '../../../../core/providers/shell_tab_provider.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -864,14 +865,14 @@ class _LowStockSheet extends ConsumerWidget {
   }
 }
 
-class _CategoryStockList extends StatelessWidget {
+class _CategoryStockList extends ConsumerWidget {
   const _CategoryStockList({required this.items, required this.strings});
 
   final List<CategoryQuantity> items;
   final AppStrings strings;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
 
@@ -889,52 +890,79 @@ class _CategoryStockList extends StatelessWidget {
       (m, c) => c.quantity > m ? c.quantity : m,
     );
 
+    final categoriesAsync = ref.watch(categoriesProvider);
+
     return Column(
       children: items.map((c) {
         final ratio = maxQty <= 0 ? 0.0 : c.quantity / maxQty;
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: isLight ? AppColors.white : AppColors.gray900,
+          child: Material(
+            color: isLight ? AppColors.white : AppColors.gray900,
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isLight ? AppColors.gray200 : AppColors.gray800,
-                width: 1.2,
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(c.name, style: theme.textTheme.titleMedium),
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(999),
-                        child: LinearProgressIndicator(
-                          value: ratio,
-                          minHeight: 6,
-                          backgroundColor:
-                              isLight ? AppColors.gray100 : AppColors.gray800,
-                          color: isLight ? AppColors.black : AppColors.white,
-                        ),
+              onTap: () {
+                final cats = categoriesAsync.valueOrNull ?? [];
+                final match = cats.where((cat) => cat.name.trim().toLowerCase() == c.name.trim().toLowerCase()).firstOrNull;
+                ref.read(productFiltersProvider.notifier).setCategoryId(match?.id);
+                ref.read(activeShellTabIndexProvider.notifier).setIndex(ShellTabs.products);
+                GoRouter.of(context).go(AppRouteNames.homeProductsPath);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isLight ? AppColors.gray200 : AppColors.gray800,
+                    width: 1.2,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                c.name,
+                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(width: 6),
+                              Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 12,
+                                color: isLight ? AppColors.gray400 : AppColors.gray600,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(999),
+                            child: LinearProgressIndicator(
+                              value: ratio,
+                              minHeight: 6,
+                              backgroundColor: isLight ? AppColors.gray100 : AppColors.gray800,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 14),
+                    Text(
+                      '${c.quantity}',
+                      style: const TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 14),
-                Text(
-                  '${c.quantity}',
-                  style: const TextStyle(
-                    fontFamily: AppTheme.fontFamily,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         );

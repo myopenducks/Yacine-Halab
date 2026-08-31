@@ -25,31 +25,82 @@ class ProfileTab extends ConsumerWidget {
   ) async {
     final strings = ref.read(appStringsProvider);
     final ctrl = TextEditingController(text: current);
+    final isLight = Theme.of(context).brightness == Brightness.light;
     final saved = await showDialog<String?>(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
-          title: Text(strings.displayName),
-          content: TextField(
-            controller: ctrl,
-            autofocus: true,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(
-              hintText: strings.yourName,
-              helperText: strings.displayNameHelper,
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: isLight ? AppColors.white : AppColors.cardDark,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 420),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  strings.displayName,
+                  style: const TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 20,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    hintText: strings.yourName,
+                    helperText: strings.displayNameHelper,
+                    filled: true,
+                    fillColor: isLight ? AppColors.gray100 : AppColors.gray900,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: isLight ? AppColors.gray200 : AppColors.gray800,
+                      ),
+                    ),
+                  ),
+                  onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          onPressed: () => Navigator.pop(ctx),
+                          child: Text(strings.cancel, style: const TextStyle(fontWeight: FontWeight.w700)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+                          child: Text(strings.save, style: const TextStyle(fontWeight: FontWeight.w700)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(strings.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-              child: Text(strings.save),
-            ),
-          ],
         );
       },
     );
